@@ -49,18 +49,7 @@ def ellipsoid_normal(x: np.ndarray) -> np.ndarray:
 def compute_boundary_forcing(
     theta: float, phi: float, z: np.ndarray, k: float, p: np.ndarray
 ) -> np.ndarray:
-    """Computes h = -n x E^i on the boundary."""
     x = ellipsoid_point(theta, phi)
     Ei = incident_field(x, z, k, p)
     n = ellipsoid_normal(x)
-    return -np.cross(n, Ei)
-
-
-k = 2
-z = np.array([1, 0, 0])
-p = np.array([0, 1, 0])
-
-theta, phi = np.pi / 4, np.pi / 4
-
-h = compute_boundary_forcing(theta, phi, z, k, p)
-print(f"Forcing term h: {h}")
+    return -np.cross(n, np.cross(Ei, n))
