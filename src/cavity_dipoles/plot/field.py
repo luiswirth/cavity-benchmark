@@ -35,7 +35,6 @@ def real_static(fig, ax, S):
                       shading="gouraud", cmap="coolwarm", vmin=-v, vmax=v,
                       rasterized=True)
         decorate(a_, S["a"], S["c"], S["src"], rf"$\mathrm{{Re}}\,E_{cl}^{{\mathrm{{{sup}}}}}$")
-    fig.suptitle("EPGP cavity field", y=0.98, fontsize=14)
 
 
 def real_anim(fig, ax, S, frames):
@@ -49,7 +48,6 @@ def real_anim(fig, ax, S, frames):
                            rasterized=True)
         decorate(a_, S["a"], S["c"], S["src"], rf"$\mathrm{{Re}}\,E_{cl}^{{\mathrm{{{sup}}}}}(t)$")
         arts.append((im, Ec))
-    fig.suptitle("EPGP cavity field over one period", y=0.98, fontsize=14)
 
     def update(k):
         th = 2 * np.pi * k / frames
@@ -75,12 +73,10 @@ def _phase_build(ax, S):
 
 def phase_static(fig, ax, S):
     _phase_build(ax, S)
-    fig.suptitle("EPGP cavity field phase", y=0.98, fontsize=14)
 
 
 def phase_anim(fig, ax, S, frames):
     ims = _phase_build(ax, S)
-    fig.suptitle("EPGP cavity field phase over one period", y=0.98, fontsize=14)
 
     def update(k):
         ph = np.exp(-1j * 2 * np.pi * k / frames)
@@ -97,7 +93,6 @@ def lic_static(fig, ax, S):
         a_.imshow(rgb, origin="lower", extent=_ext(S), aspect="equal",
                   interpolation="bilinear")
         decorate(a_, S["a"], S["c"], S["src"], rf"$\mathbf{{E}}^{{\mathrm{{{sup}}}}}$")
-    fig.suptitle("EPGP cavity field LIC", y=0.98, fontsize=14)
 
 
 def lic_anim(fig, ax, S, frames):
@@ -108,7 +103,6 @@ def lic_anim(fig, ax, S, frames):
                        extent=_ext(S), aspect="equal", interpolation="bilinear")
         decorate(a_, S["a"], S["c"], S["src"], rf"$\mathbf{{E}}^{{\mathrm{{{sup}}}}}(t)$")
         arts.append((im, Ec))
-    fig.suptitle("EPGP cavity field LIC over one period", y=0.98, fontsize=14)
 
     def update(k):
         ph = np.exp(-1j * 2 * np.pi * k / frames)

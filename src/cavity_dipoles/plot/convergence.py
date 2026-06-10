@@ -7,12 +7,20 @@ import numpy as np
 
 from .common import FIGS, save, setup_style
 
-BEM = os.path.join("out", "bem")
-EPGP = os.path.join("out", "ellipse")
-SPHERE = os.path.join("out", "sphere")
+ELLIPSE_BEM = os.path.join("out", "ellipse_bem")
+ELLIPSE_EPGP = os.path.join("out", "ellipse_epgp")
+SPHERE_EPGP = os.path.join("out", "sphere_epgp")
 FLOOR = 1e-16
 
-C = {"epgp": "#1f77b4", "recip": "#d62728"}
+# Shared metric styles. Every convergence plot draws whichever of these exist:
+# an error against an external reference, the reference-free reciprocity error,
+# and the self-convergence distance to the finest run of the family.
+ERR = dict(color="#d62728", marker="D", ms=8)    # vs external reference
+RECIP = dict(color="#1f77b4", marker="o", ms=7)  # reciprocity rho
+SELF = dict(color="#2ca02c", marker="s", ms=7)   # self-convergence delta
+
+L_RHO = r"$\rho = \|\mathbf{T}-\mathbf{T}^{\!\top}\|/\|\mathbf{T}\|$"
+L_DELTA = r"$\delta = \|\mathbf{T}-\mathbf{T}_{\mathrm{ref}}\|/\|\mathbf{T}_{\mathrm{ref}}\|$"
 
 
 def read_csv(path):
@@ -26,34 +34,108 @@ def _grid(ax):
     ax.margins(x=0.04, y=0.08)
 
 
-def _epgp_axes(ax, ns, y, color, marker, ylabel, title):
-    ax.plot(ns, y, marker + "-", color=color, mec="white", mew=1.0, markersize=8)
-    ax.set_xscale("log", base=2)
+def _series(ax, x, y, style, label):
+    """One metric curve. Non-positive entries (e.g. the reference run's own
+    self-convergence, which is exactly zero) are dropped rather than clamped."""
+    x = np.asarray(x, float)
+    y = np.asarray(y, float)
+    m = y > 0
+    ax.plot(x[m], y[m], style["marker"] + "-", color=style["color"],
+            mec="white", mew=1.0, markersize=style["ms"], label=label)
+
+
+def _conv_ax(ax, x, series, xlabel, xlog2=True):
+    """Unified convergence axis: log-y, shared styling, one line per metric.
+
+    series: list of (values, style, label).
+    """
+    for y, style, label in series:
+        _series(ax, x, y, style, label)
+    if xlog2:
+        ax.set_xscale("log", base=2)
+    else:
+        ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlabel(r"$n_\mathrm{spec}$")
-    ax.set_ylabel(ylabel)
-    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("relative error")
+    ax.legend(frameon=False)
     _grid(ax)
 
 
-def fig_epgp_convergence(fmt="svg"):
-    e = sorted(read_csv(os.path.join(EPGP, "results.csv")),
+def fig_sphere_epgp_convergence(fmt="svg"):
+    path = os.path.join(SPHERE_EPGP, "results.csv")
+    if not os.path.exists(path):
+        return
+    e = sorted(read_csv(path), key=lambda r: int(r["n_spectral"]))
+    ns = [int(r["n_spectral"]) for r in e]
+    err = [float(r["err_vs_analytic"]) for r in e]
+    rec = [float(r["recip"]) for r in e]
+    self = [float(r["selfconv_vs_finest"]) for r in e]
+
+    fig, ax = plt.subplots(figsize=(6.4, 4.6), layout="constrained")
+    _conv_ax(ax, ns, [
+        (err, ERR, r"$\varepsilon_\star = \|\mathbf{T}_{\mathrm{EPGP}}-\mathbf{T}_\star\|/\|\mathbf{T}_\star\|$"),
+        (rec, RECIP, L_RHO),
+        (self, SELF, L_DELTA),
+    ], r"$n_\mathrm{spec}$")
+    save(fig, "sphere_epgp_convergence", fmt)
+
+
+def fig_ellipse_epgp_convergence(fmt="svg"):
+    e = sorted(read_csv(os.path.join(ELLIPSE_EPGP, "results.csv")),
                key=lambda r: int(r["n_spectral"]))
-    ns = np.array([int(r["n_spectral"]) for r in e])
-    err = np.array([max(float(r["err_vs_bem_ref"]), FLOOR) for r in e])
-    rec = np.array([max(float(r["recip"]), FLOOR) for r in e])
+    ns = [int(r["n_spectral"]) for r in e]
+    err = [float(r["err_vs_bem_ref"]) for r in e]
+    rec = [float(r["recip"]) for r in e]
+    self = [float(r["selfconv_vs_finest"]) for r in e]
 
     fig, ax = plt.subplots(figsize=(6.4, 4.6), layout="constrained")
-    _epgp_axes(ax, ns, err, C["recip"], "D",
-               r"$\varepsilon = \|\mathbf{T}_{\mathrm{EPGP}}-\mathbf{T}_{\mathrm{BEM}}\|/\|\mathbf{T}_{\mathrm{BEM}}\|$",
-               "EPGP convergence to BEM reference")
-    save(fig, "epgp_vs_bem", fmt)
+    _conv_ax(ax, ns, [
+        (err, ERR, r"$\varepsilon = \|\mathbf{T}_{\mathrm{EPGP}}-\mathbf{T}_{\mathrm{BEM}}\|/\|\mathbf{T}_{\mathrm{BEM}}\|$"),
+        (rec, RECIP, L_RHO),
+        (self, SELF, L_DELTA),
+    ], r"$n_\mathrm{spec}$")
+    save(fig, "ellipse_epgp_convergence", fmt)
 
-    fig, ax = plt.subplots(figsize=(6.4, 4.6), layout="constrained")
-    _epgp_axes(ax, ns, rec, C["recip"], "D",
-               r"$\rho = \|\mathbf{T}-\mathbf{T}^{\!\top}\|/\|\mathbf{T}\|$",
-               "EPGP reciprocity error")
-    save(fig, "epgp_reciprocity", fmt)
+
+def fig_ellipse_bem_convergence(bem, fmt="svg"):
+    # BEM is a two-parameter (p, m) study, fundamentally unlike the EPGP sweeps,
+    # so it keeps its own h- and p-refinement panels rather than the shared
+    # single-axis template. Reciprocity rho is the per-run quantity; delta is in
+    # the table.
+    fig, ax = plt.subplots(1, 2, figsize=(11, 4.4), layout="constrained")
+    cmap = plt.get_cmap("viridis")
+
+    ms_all = sorted({r["m"] for r in bem})
+    ps_all = sorted({r["p"] for r in bem})
+
+    for i, p in enumerate(ps_all):
+        rows = sorted((r for r in bem if r["p"] == p and r["recip"] > 0),
+                      key=lambda r: r["m"])
+        if len(rows) < 2:
+            continue
+        ax[0].semilogy([r["m"] for r in rows], [r["recip"] for r in rows],
+                       "D-", color=cmap(i / max(len(ps_all) - 1, 1)),
+                       mec="white", mew=0.8, label=f"$p={p}$")
+    ax[0].set_xlabel(r"mesh level $m$"); ax[0].set_ylabel(L_RHO)
+    ax[0].set_title(r"$h$-refinement"); ax[0].legend(frameon=False, ncol=2)
+    ax[0].set_xticks(ms_all)
+    _grid(ax[0])
+
+    for i, m in enumerate(ms_all):
+        rows = sorted((r for r in bem if r["m"] == m and r["recip"] > 0),
+                      key=lambda r: r["p"])
+        if len(rows) < 2:
+            continue
+        ax[1].semilogy([r["p"] for r in rows], [r["recip"] for r in rows],
+                       "D-", color=cmap(i / max(len(ms_all) - 1, 1)),
+                       mec="white", mew=0.8, label=f"$m={m}$")
+    ax[1].set_xlabel(r"polynomial degree $p$"); ax[1].set_ylabel(L_RHO)
+    ax[1].set_title(r"$p$-refinement"); ax[1].legend(frameon=False)
+    ax[1].set_xticks(ps_all)
+    _grid(ax[1])
+
+    save(fig, "ellipse_bem_convergence", fmt)
 
 
 def _ksweep_fig(path, yfield, ylabel, savename, fmt):
@@ -94,85 +176,19 @@ def _ksweep_fig(path, yfield, ylabel, savename, fmt):
     save(fig, savename, fmt)
 
 
-def fig_ksweep(fmt="svg"):
-    _ksweep_fig(os.path.join(EPGP, "ksweep.csv"), "recip",
-                r"$\rho = \|\mathbf{T}-\mathbf{T}^{\!\top}\|/\|\mathbf{T}\|$",
-                "epgp_ksweep", fmt)
+def fig_ellipse_epgp_ksweep(fmt="svg"):
+    _ksweep_fig(os.path.join(ELLIPSE_EPGP, "ksweep.csv"), "recip", L_RHO,
+                "ellipse_epgp_ksweep", fmt)
 
 
-def fig_sphere_ksweep(fmt="svg"):
-    _ksweep_fig(os.path.join(SPHERE, "ksweep.csv"), "err_vs_ref",
+def fig_sphere_epgp_ksweep(fmt="svg"):
+    _ksweep_fig(os.path.join(SPHERE_EPGP, "ksweep.csv"), "err_vs_ref",
                 r"$\|\mathbf{T}_{\mathrm{EPGP}}-\mathbf{T}_\star\|/\|\mathbf{T}_\star\|$",
-                "sphere_ksweep", fmt)
+                "sphere_epgp_ksweep", fmt)
 
 
-def fig_bem_reciprocity(bem, fmt="svg"):
-    fig, ax = plt.subplots(1, 2, figsize=(11, 4.4), layout="constrained")
-    cmap = plt.get_cmap("viridis")
-
-    ms_all = sorted({r["m"] for r in bem})
-    ps_all = sorted({r["p"] for r in bem})
-
-    for i, p in enumerate(ps_all):
-        rows = sorted((r for r in bem if r["p"] == p and r["recip"] > 0),
-                      key=lambda r: r["m"])
-        if len(rows) < 2:
-            continue
-        ax[0].semilogy([r["m"] for r in rows], [r["recip"] for r in rows],
-                       "D-", color=cmap(i / max(len(ps_all) - 1, 1)),
-                       mec="white", mew=0.8, label=f"$p={p}$")
-    ax[0].set_xlabel(r"mesh level $m$"); ax[0].set_ylabel(r"$\rho = \|\mathbf{T}-\mathbf{T}^{\!\top}\|/\|\mathbf{T}\|$")
-    ax[0].set_title(r"$h$-refinement"); ax[0].legend(frameon=False, ncol=2)
-    ax[0].set_xticks(ms_all)
-    _grid(ax[0])
-
-    for i, m in enumerate(ms_all):
-        rows = sorted((r for r in bem if r["m"] == m and r["recip"] > 0),
-                      key=lambda r: r["p"])
-        if len(rows) < 2:
-            continue
-        ax[1].semilogy([r["p"] for r in rows], [r["recip"] for r in rows],
-                       "D-", color=cmap(i / max(len(ms_all) - 1, 1)),
-                       mec="white", mew=0.8, label=f"$m={m}$")
-    ax[1].set_xlabel(r"polynomial degree $p$"); ax[1].set_ylabel(r"$\rho = \|\mathbf{T}-\mathbf{T}^{\!\top}\|/\|\mathbf{T}\|$")
-    ax[1].set_title(r"$p$-refinement"); ax[1].legend(frameon=False)
-    ax[1].set_xticks(ps_all)
-    _grid(ax[1])
-
-    fig.suptitle("BEM reciprocity error", y=1.02, fontsize=14)
-    save(fig, "bem_reciprocity", fmt)
-
-
-def fig_sphere_convergence(fmt="svg"):
-    path = os.path.join(SPHERE, "results.csv")
-    if not os.path.exists(path):
-        return
-    e = sorted(read_csv(path), key=lambda r: int(r["n_spectral"]))
-    ns = np.array([int(r["n_spectral"]) for r in e])
-    err = np.array([max(float(r["err_vs_analytic"]), FLOOR) for r in e])
-    rec = np.array([max(float(r["recip"]), FLOOR) for r in e])
-    mp = os.path.join(SPHERE, "multipole.csv")
-    kR = float(read_csv(mp)[0]["kR"]) if os.path.exists(mp) else None
-
-    fig, ax = plt.subplots(figsize=(6.4, 4.6), layout="constrained")
-    ax.plot(ns, err, "D-", color=C["recip"], mec="white", mew=1.0, markersize=8,
-            label=r"$\|\mathbf{T}_{\mathrm{EPGP}}-\mathbf{T}_\star\|/\|\mathbf{T}_\star\|$")
-    ax.plot(ns, rec, "o-", color=C["epgp"], mec="white", mew=1.0, markersize=7,
-            label=r"$\rho = \|\mathbf{T}-\mathbf{T}^{\!\top}\|/\|\mathbf{T}\|$")
-    if kR is not None:
-        ax.axvline(kR**2, color="0.4", ls=":", lw=1.6, label=r"$n_\mathrm{spec}=(kR)^2$")
-    ax.set_xscale("log", base=2)
-    ax.set_yscale("log")
-    ax.set_xlabel(r"$n_\mathrm{spec}$")
-    ax.set_ylabel("relative error")
-    ax.set_title("EPGP convergence to analytic sphere operator")
-    ax.legend(frameon=False)
-    _grid(ax)
-    save(fig, "sphere_convergence", fmt)
-
-
-def fig_sphere_multipole(fmt="svg"):
-    path = os.path.join(SPHERE, "multipole.csv")
+def fig_sphere_analytic_multipole(fmt="svg"):
+    path = os.path.join(SPHERE_EPGP, "multipole.csv")
     if not os.path.exists(path):
         return
     r = read_csv(path)
@@ -181,14 +197,13 @@ def fig_sphere_multipole(fmt="svg"):
     kR = float(r[0]["kR"])
 
     fig, ax = plt.subplots(figsize=(6.4, 4.6), layout="constrained")
-    ax.semilogy(ll, nrm, "D-", color=C["epgp"], mec="white", mew=1.0, markersize=7)
+    ax.semilogy(ll, nrm, "D-", color=ERR["color"], mec="white", mew=1.0, markersize=7)
     ax.axvline(kR, color="0.4", ls=":", lw=1.6, label=r"$l = kR$")
     ax.set_xlabel(r"degree $l$")
     ax.set_ylabel(r"$\|\mathbf{T}_l\|$")
-    ax.set_title("Multipole spectrum of the sphere reaction operator")
     ax.legend(frameon=False)
     _grid(ax)
-    save(fig, "sphere_multipole", fmt)
+    save(fig, "sphere_analytic_multipole", fmt)
 
 
 def main():
@@ -200,18 +215,21 @@ def main():
     os.makedirs(FIGS, exist_ok=True)
     bem = [{"p": int(r["p"]), "m": int(r["m"]), "dofs": int(r["dofs"]),
             "recip": float(r["recip"]), "selfconv_vs_ref": float(r["selfconv_vs_ref"])}
-           for r in read_csv(os.path.join(BEM, "results.csv"))]
+           for r in read_csv(os.path.join(ELLIPSE_BEM, "results.csv"))]
     ref = min(bem, key=lambda r: r["recip"])
 
-    fig_epgp_convergence(fmt)
-    fig_ksweep(fmt)
-    fig_bem_reciprocity(bem, fmt)
-    fig_sphere_convergence(fmt)
-    fig_sphere_multipole(fmt)
-    fig_sphere_ksweep(fmt)
+    fig_sphere_epgp_convergence(fmt)
+    fig_ellipse_epgp_convergence(fmt)
+    fig_ellipse_bem_convergence(bem, fmt)
+    fig_ellipse_epgp_ksweep(fmt)
+    fig_sphere_epgp_ksweep(fmt)
+    fig_sphere_analytic_multipole(fmt)
     stale = ("h_convergence", "p_convergence", "reciprocity", "svd_spectrum",
              "bem_validity", "bem_self_convergence", "preview", "all_preview",
-             "epgp_convergence", "operator_spectrum")
+             "epgp_convergence", "operator_spectrum",
+             "bem_reciprocity", "epgp_reciprocity", "epgp_vs_bem",
+             "bem_convergence", "ellipse_convergence", "sphere_convergence",
+             "epgp_ksweep", "sphere_ksweep", "sphere_multipole")
     for f in os.listdir(FIGS):
         if f.rsplit(".", 1)[0] in stale:
             os.remove(os.path.join(FIGS, f))

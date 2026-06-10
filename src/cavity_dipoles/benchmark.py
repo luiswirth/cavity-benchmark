@@ -30,10 +30,10 @@ def config_path(name):
 
 
 def out_dir(name):
-    return os.path.join("out", name)
+    return os.path.join("out", f"{name}_epgp")
 
 
-def reference_operator(name, k, points, e1, e2, bem_path="out/bem/T_bem_p4_m4.dat"):
+def reference_operator(name, k, points, e1, e2, bem_path="out/ellipse_bem/T_bem_p4_m4.dat"):
     """Reference reaction operator for the named benchmark at wavenumber k."""
     if name == "sphere":
         return reaction_operator_sphere(k, float(max(GEOMETRIES[name])), points, e1, e2)

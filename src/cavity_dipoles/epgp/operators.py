@@ -209,7 +209,7 @@ def main():
 
     op = sub.add_parser("operator", help="assemble the dipole reaction operator T")
     add_common(op)
-    op.add_argument("--out", default="out/ellipse/T_epgp.npy")
+    op.add_argument("--out", default="out/ellipse_epgp/T_epgp.npy")
     op.set_defaults(func=run_operator)
 
     fld = sub.add_parser("field", help="evaluate the field on a slice for one dipole")
@@ -218,7 +218,7 @@ def main():
     fld.add_argument("--pol", type=float, nargs=3, required=True, metavar=("PX", "PY", "PZ"))
     fld.add_argument("--ngrid", type=int, default=400)
     fld.add_argument("--batch", type=int, default=4000)
-    fld.add_argument("--out", default="out/field/field_slice.npz")
+    fld.add_argument("--out", default="out/field/ellipse_field_slice.npz")
     fld.set_defaults(func=run_field)
 
     args = ap.parse_args()

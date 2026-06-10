@@ -5,7 +5,7 @@ import numpy as np
 
 from .compare import load_bem, reciprocity
 
-BEM = os.path.join("out", "bem")
+BEM = os.path.join("out", "ellipse_bem")
 
 
 def save_bem(path, T):

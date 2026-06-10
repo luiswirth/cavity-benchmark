@@ -3,7 +3,17 @@ import os
 import subprocess
 import sys
 
-FIELD_NPZ = os.path.join("out", "field", "field_slice.npz")
+FIELD_DIR = os.path.join("out", "field")
+FIGS = os.path.join("out", "figs")
+MODES = ["real", "phase", "lic"]
+
+# Field slices to render: (npz file, output prefix, required). The ellipsoidal
+# cavity is the default benchmark; the spherical cavity is rendered too when its
+# slice exists.
+FIELD_SLICES = [
+    (os.path.join(FIELD_DIR, "ellipse_field_slice.npz"), "ellipse_epgp_field", True),
+    (os.path.join(FIELD_DIR, "sphere_field_slice.npz"), "sphere_epgp_field", False),
+]
 
 AGG = "cavity_dipoles.results.aggregate"
 CONV = "cavity_dipoles.plot.convergence"
@@ -11,12 +21,15 @@ FLD = "cavity_dipoles.plot.field"
 
 DATA = [[AGG]]
 BENCH = [[CONV]]
-FIELD = [[FLD, "--mode", "real"],
-         [FLD, "--mode", "phase"],
-         [FLD, "--mode", "lic"]]
-ANIM = [[FLD, "--mode", "real", "--animate"],
-        [FLD, "--mode", "phase", "--animate"],
-        [FLD, "--mode", "lic", "--animate"]]
+
+
+def field_steps(npz, prefix, animate):
+    ext = "webp" if animate else "png"
+    anim = ["--animate"] if animate else []
+    suffix = "_anim" if animate else ""
+    return [[FLD, npz, "--mode", m, *anim,
+             "--out", os.path.join(FIGS, f"{prefix}_{m}{suffix}.{ext}")]
+            for m in MODES]
 
 
 def run(step):
@@ -36,14 +49,17 @@ def main():
     if args.png:
         steps += [[CONV, "--format", "png"]]
     if not args.skip_field:
-        if not os.path.exists(FIELD_NPZ):
-            print(f"! {FIELD_NPZ} missing -- generate it with "
-                  "'python -m cavity_dipoles.epgp.operators field', or pass --skip-field",
-                  file=sys.stderr)
-            sys.exit(1)
-        steps += FIELD
-        if not args.skip_anim:
-            steps += ANIM
+        for npz, prefix, required in FIELD_SLICES:
+            if not os.path.exists(npz):
+                if required:
+                    print(f"! {npz} missing -- generate it with "
+                          "'python -m cavity_dipoles.epgp.operators field', or pass --skip-field",
+                          file=sys.stderr)
+                    sys.exit(1)
+                continue
+            steps += field_steps(npz, prefix, animate=False)
+            if not args.skip_anim:
+                steps += field_steps(npz, prefix, animate=True)
 
     for s in steps:
         run(s)

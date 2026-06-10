@@ -16,7 +16,7 @@ from ..benchmark import config_path, out_dir, reference_operator
 from ..epgp.operators import load_config
 from .compare import load_bem, load_epgp, reciprocity
 
-BEM = os.path.join("out", "bem")
+BEM = os.path.join("out", "ellipse_bem")
 
 
 def read_bem_manifest():
