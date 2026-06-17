@@ -1,0 +1,27 @@
+#!/bin/bash
+#SBATCH --job-name=epgp
+#SBATCH --output=epgp_results/slurm-%A_%a.log
+#SBATCH --time=04:00:00
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem-per-cpu=4G
+#SBATCH --constraint=EPYC_7742
+#
+# Set up first on a login node:
+#   curl -LsSf https://astral.sh/uv/install.sh | sh   # once, if uv missing
+#   uv sync   # needs SSH-agent forwarding to clone the maxwellgp git dep
+# Submit one geometry per array index (1=ellipse, 2=sphere):
+#   sbatch --array=1-2 euler/run.sbatch
+# 16 cores on an EPYC_7742 node matches the BEM reference run for a fair
+# same-hardware runtime comparison; the cgroup pins both to 16 cores.
+set -euo pipefail
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK:-1}
+export OPENBLAS_NUM_THREADS=$OMP_NUM_THREADS MKL_NUM_THREADS=$OMP_NUM_THREADS
+export XLA_FLAGS="--xla_cpu_multi_thread_eigen=true"
+ROOT=$(pwd); mkdir -p epgp_results
+GEOMS=(ellipse sphere)
+geom=${GEOMS[$((SLURM_ARRAY_TASK_ID - 1))]}
+echo "node=$(hostname) cpus=$SLURM_CPUS_PER_TASK geom=$geom"
+uv run epgp-convergence --geometry "$geom"
+cp -r "out/${geom}_epgp" "epgp_results/${geom}_epgp"
+echo "done $geom"
