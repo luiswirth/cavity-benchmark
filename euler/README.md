@@ -29,13 +29,15 @@ scale past ~8-16 cores, so this, not more cores per task, is what makes a study
 finish fast. `array.sbatch` runs any `--index`/`--collect`-aware entry point;
 `submit.sh` chains the array + the collect step (afterok):
 
-    euler/submit.sh 0-18 epgp-convergence --geometry ellipse
+    euler/submit.sh 0-41 epgp-convergence --geometry ellipse   # 7 n_spectral x 6 n_boundary
     euler/submit.sh 0-4  epgp-sweep       --geometry ellipse
     euler/submit.sh 0-9  epgp-resonance   --geometry ellipse --nchunks 10
 
-Add --exclusive for the big regeneration (clean timing/memory per task):
+The convergence study is the 2D (n_spectral, n_boundary) grid (mirror of the BEM
+(p, m) grid); the best operator is the high corner of both. Add --exclusive for
+the big regeneration (clean timing/memory per task):
 
-    SBATCH_EXTRA="--exclusive" euler/submit.sh 0-18 epgp-convergence --geometry sphere
+    SBATCH_EXTRA="--exclusive" euler/submit.sh 0-41 epgp-convergence --geometry sphere
 
 Or manually: `sbatch --array=0-18 euler/array.sbatch epgp-convergence --geometry
 ellipse`, then `uv run epgp-convergence --geometry ellipse --collect`.

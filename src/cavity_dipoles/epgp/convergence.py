@@ -45,18 +45,18 @@ def _pkg_version(name):
         return "unknown"
 
 
-def write_provenance(outdir, cfg, k, geometry, ns_list):
+def write_provenance(outdir, cfg, k, geometry):
     """Record everything needed to reproduce the run alongside the data."""
     prov = {
         "timestamp": datetime.datetime.now().isoformat(timespec="seconds"),
         "host": socket.gethostname(),
         "geometry": geometry,
         "k": k,
-        "n_boundary": cfg.n_boundary,
         "log_noise0": cfg.log_noise,
         "opt_noise": cfg.opt_noise,
         "opt_steps": cfg.opt_steps,
-        "n_spectral": list(ns_list),
+        "n_spectral_sweep": list(NS_SWEEP),
+        "n_boundary_sweep": list(NB_SWEEP),
         "cavity_dipoles_commit": _git_commit(),
         "maxwellgp_version": _pkg_version("maxwellgp"),
         "jax_version": _pkg_version("jax"),
@@ -65,16 +65,22 @@ def write_provenance(outdir, cfg, k, geometry, ns_list):
     with open(os.path.join(outdir, "provenance.json"), "w") as f:
         json.dump(prov, f, indent=2)
 
-NS_SWEEP = (16, 24, 32, 48, 64, 80, 96, 112, 128, 144, 160, 192, 224,
-            256, 320, 384, 512, 768, 1024)
+# EP-GP has two convergence axes, mirroring BEM's (poly-degree p, refinement m):
+#   n_spectral  -- plane-wave feature richness (like p)
+#   n_boundary  -- boundary-collocation density (like h/m)
+# The study is the full grid; the best operator is the high corner of both.
+NS_SWEEP = (16, 32, 64, 128, 256, 512, 1024)
+NB_SWEEP = (300, 600, 1200, 2400, 4800, 9600)
+GRID = [(ns, nb) for nb in NB_SWEEP for ns in NS_SWEEP]   # flat; ns varies fastest
 
-MANIFEST_HEADER = ["n_spectral", "dofs", "n_boundary", "secs",
+MANIFEST_HEADER = ["n_spectral", "n_boundary", "dofs", "secs",
                    "log_noise", "cond", "recip", "norm", "maxrss_kb"]
 FRAGMENT_DIR = "manifest.d"
 
 
-def run_one(cfg, semiaxes, k, points, e1, e2, ns, outdir):
-    """Assemble the operator at one spectral resolution, save it, return the row."""
+def run_one(base_cfg, semiaxes, k, points, e1, e2, ns, nb, outdir):
+    """Assemble the operator at one (n_spectral, n_boundary), save it, return row."""
+    cfg = GPConfig(nb, base_cfg.log_noise, base_cfg.opt_noise, base_cfg.opt_steps)
     t0 = time.perf_counter()
     T, post, model = assemble_operator(cfg, semiaxes, k, points, e1, e2, ns)
     secs = time.perf_counter() - t0
@@ -85,16 +91,16 @@ def run_one(cfg, semiaxes, k, points, e1, e2, ns, outdir):
     log_noise = float(model.log_noise)
     maxrss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 
-    np.save(os.path.join(outdir, f"T_epgp_ns{ns}.npy"), T)
-    print(f"ns={ns:>5}  dofs={2 * ns:>5}  secs={secs:6.1f}  log_noise={log_noise:7.3f}  "
+    np.save(os.path.join(outdir, f"T_epgp_ns{ns}_nb{nb}.npy"), T)
+    print(f"ns={ns:>5} nb={nb:>5}  dofs={2 * ns:>5}  secs={secs:6.1f}  "
           f"cond={cond:.3e}  recip={recip:.3e}  maxrss={maxrss_kb / 1048576:.2f}GiB")
-    return {"n_spectral": ns, "dofs": 2 * ns, "n_boundary": cfg.n_boundary,
-            "secs": secs, "log_noise": log_noise, "cond": cond, "recip": recip,
+    return {"n_spectral": ns, "n_boundary": nb, "dofs": 2 * ns, "secs": secs,
+            "log_noise": log_noise, "cond": cond, "recip": recip,
             "norm": norm, "maxrss_kb": maxrss_kb}
 
 
 def _row_values(r):
-    return [r["n_spectral"], r["dofs"], r["n_boundary"], f"{r['secs']:.3f}",
+    return [r["n_spectral"], r["n_boundary"], r["dofs"], f"{r['secs']:.3f}",
             f"{r['log_noise']:.6f}", f"{r['cond']:.6e}", f"{r['recip']:.6e}",
             f"{r['norm']:.6e}", r["maxrss_kb"]]
 
@@ -104,16 +110,16 @@ def write_manifest(outdir, rows):
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(MANIFEST_HEADER)
-        for r in sorted(rows, key=lambda r: r["n_spectral"]):
+        for r in sorted(rows, key=lambda r: (r["n_boundary"], r["n_spectral"])):
             w.writerow(_row_values(r))
     return path
 
 
 def write_fragment(outdir, row):
-    """One row per file (array-task safe: no concurrent writers to one file)."""
+    """One file per grid point (array-task safe: no concurrent writers)."""
     d = os.path.join(outdir, FRAGMENT_DIR)
     os.makedirs(d, exist_ok=True)
-    path = os.path.join(d, f"{row['n_spectral']:05d}.csv")
+    path = os.path.join(d, f"{row['n_spectral']:05d}_{row['n_boundary']:05d}.csv")
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(MANIFEST_HEADER)
@@ -122,7 +128,7 @@ def write_fragment(outdir, row):
 
 
 def collect(outdir):
-    """Merge per-ns fragments (written by array tasks) into one manifest.csv."""
+    """Merge per-grid-point fragments (from array tasks) into one manifest.csv."""
     d = os.path.join(outdir, FRAGMENT_DIR)
     rows = {}
     for name in sorted(os.listdir(d)):
@@ -130,18 +136,19 @@ def collect(outdir):
             continue
         with open(os.path.join(d, name)) as f:
             for r in csv.DictReader(f):
-                rows[int(r["n_spectral"])] = [r[c] for c in MANIFEST_HEADER]
+                rows[(int(r["n_boundary"]), int(r["n_spectral"]))] = \
+                    [r[c] for c in MANIFEST_HEADER]
     path = os.path.join(outdir, "manifest.csv")
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(MANIFEST_HEADER)
-        for ns in sorted(rows):
-            w.writerow(rows[ns])
+        for key in sorted(rows):
+            w.writerow(rows[key])
     print(f"collected {len(rows)} fragments -> {path}")
 
 
 def main():
-    ap = argparse.ArgumentParser(description="EPGP n_spectral convergence sweep")
+    ap = argparse.ArgumentParser(description="EPGP (n_spectral, n_boundary) convergence grid")
     ap.add_argument("--geometry", choices=list(GEOMETRIES), default="ellipse")
     ap.add_argument("--config", default=None)
     ap.add_argument("--n-boundary", type=int, default=1200)
@@ -150,15 +157,15 @@ def main():
     ap.add_argument("--opt-steps", type=int, default=200)
     ap.add_argument("--outdir", default=None)
     ap.add_argument("--index", type=int, default=None,
-                    help="run a single NS_SWEEP entry by index (for SLURM array tasks)")
+                    help="run a single GRID entry by flat index (for SLURM array tasks)")
     ap.add_argument("--collect", action="store_true",
-                    help="merge per-ns fragments into manifest.csv, then exit")
+                    help="merge per-grid-point fragments into manifest.csv, then exit")
     args = ap.parse_args()
 
     outdir = args.outdir or out_dir(args.geometry)
     os.makedirs(outdir, exist_ok=True)
     naff = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count()
-    print(f"jax devices: {jax.devices()}  affinity: {naff} cpus")
+    print(f"jax devices: {jax.devices()}  affinity: {naff} cpus  grid points: {len(GRID)}")
 
     if args.collect:
         collect(outdir)
@@ -169,16 +176,16 @@ def main():
     cfg = GPConfig.from_args(args)
 
     if args.index is not None:
-        ns = NS_SWEEP[args.index]
-        row = run_one(cfg, semiaxes, k, points, e1, e2, ns, outdir)
+        ns, nb = GRID[args.index]
+        row = run_one(cfg, semiaxes, k, points, e1, e2, ns, nb, outdir)
         write_fragment(outdir, row)
-        write_provenance(outdir, cfg, k, args.geometry, NS_SWEEP)
+        write_provenance(outdir, cfg, k, args.geometry)
         return
 
-    rows = [run_one(cfg, semiaxes, k, points, e1, e2, ns, outdir) for ns in NS_SWEEP]
+    rows = [run_one(cfg, semiaxes, k, points, e1, e2, ns, nb, outdir) for ns, nb in GRID]
     path = write_manifest(outdir, rows)
-    print(f"wrote {path}: {len(rows)} runs")
-    write_provenance(outdir, cfg, k, args.geometry, NS_SWEEP)
+    print(f"wrote {path}: {len(rows)} grid points")
+    write_provenance(outdir, cfg, k, args.geometry)
 
 
 if __name__ == "__main__":

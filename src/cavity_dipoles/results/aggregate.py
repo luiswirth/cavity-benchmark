@@ -65,26 +65,30 @@ def read_epgp_manifest(epgp_dir):
         for row in csv.DictReader(f):
             rows.append({
                 "ns": int(row["n_spectral"]),
+                "nb": int(row["n_boundary"]),
                 "dofs": int(row["dofs"]),
                 "secs": float(row["secs"]),
                 "log_noise": float(row["log_noise"]),
                 "cond": float(row["cond"]),
                 "maxrss": int(row["maxrss_kb"]) if row.get("maxrss_kb") else 0,
             })
-    return sorted(rows, key=lambda r: r["ns"])
+    return sorted(rows, key=lambda r: (r["nb"], r["ns"]))
 
 
 def aggregate_epgp(epgp_dir, T_ref, err_col):
-    """Combine the EPGP manifest with the saved operators: add self-convergence
-    (vs the finest n_spectral) and the relative error against the reference."""
+    """Combine the EPGP manifest with the saved operators over the
+    (n_spectral, n_boundary) grid: self-convergence is measured against the
+    finest corner (max n_spectral, max n_boundary); err is vs the reference."""
     nref = np.linalg.norm(T_ref)
     runs = read_epgp_manifest(epgp_dir)
-    Ts = {r["ns"]: load_epgp(os.path.join(epgp_dir, f"T_epgp_ns{r['ns']}.npy")) for r in runs}
-    Tfinest = Ts[runs[-1]["ns"]]
+    Ts = {(r["ns"], r["nb"]): load_epgp(
+        os.path.join(epgp_dir, f"T_epgp_ns{r['ns']}_nb{r['nb']}.npy")) for r in runs}
+    corner = max(Ts)                              # (max ns, max nb) present
+    Tfinest = Ts[corner]
     nfinest = np.linalg.norm(Tfinest)
 
     for r in runs:
-        T = Ts[r["ns"]]
+        T = Ts[(r["ns"], r["nb"])]
         r["recip"] = reciprocity(T)
         r["selfconv"] = np.linalg.norm(T - Tfinest) / nfinest
         r["err"] = np.linalg.norm(T - T_ref) / nref
@@ -92,15 +96,15 @@ def aggregate_epgp(epgp_dir, T_ref, err_col):
     path = os.path.join(epgp_dir, "results.csv")
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["n_spectral", "dofs", "secs", "log_noise", "cond",
+        w.writerow(["n_spectral", "n_boundary", "dofs", "secs", "log_noise", "cond",
                     "recip", "selfconv_vs_finest", err_col, "maxrss_kb"])
         for r in runs:
-            w.writerow([r["ns"], r["dofs"], f"{r['secs']:.3f}",
+            w.writerow([r["ns"], r["nb"], r["dofs"], f"{r['secs']:.3f}",
                         f"{r['log_noise']:.6f}", f"{r['cond']:.6e}",
                         f"{r['recip']:.6e}", f"{r['selfconv']:.6e}", f"{r['err']:.6e}",
                         r["maxrss"]])
-            print(f"  EP-GP ns={r['ns']:>5}  secs={r['secs']:6.1f}  cond={r['cond']:.2e}  "
-                  f"recip={r['recip']:.3e}  selfconv={r['selfconv']:.3e}  err={r['err']:.3e}")
+            print(f"  EP-GP ns={r['ns']:>5} nb={r['nb']:>5}  recip={r['recip']:.3e}  "
+                  f"selfconv={r['selfconv']:.3e}  err={r['err']:.3e}")
     print(f"wrote {path}")
 
 
