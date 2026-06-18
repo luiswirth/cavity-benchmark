@@ -5,3 +5,4 @@ set -euo pipefail
 cp res/config_ellipse.txt ../cavity-epgp/res/config_ellipse.txt
 cp res/config_sphere.txt  ../cavity-epgp/res/config_sphere.txt
 cp res/config_ellipse.txt ../cavity-bem/res/config_ellipse.txt
+cp res/config_sphere.txt  ../cavity-bem/res/config_sphere.txt
