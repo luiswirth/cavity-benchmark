@@ -28,32 +28,25 @@ def _grid(ax):
     ax.margins(x=0.04, y=0.08)
 
 
-def _epgp_2d_fig(rows, errcol, errlabel, savename, fmt):
-    """Two-panel view of the (n_spectral, n_boundary) grid, mirroring the BEM
-    (p, m) figure: left = error vs n_spectral per n_boundary; right = error vs
-    n_boundary per n_spectral. The best operator is the high corner of both."""
-    nss = sorted({int(r["n_spectral"]) for r in rows})
+def _epgp_conv_fig(rows, savename, fmt):
+    """Single-panel reciprocity error vs n_spectral, one line per n_boundary.
+    n_boundary is a sufficiency parameter, not a refinement axis, so it appears
+    only as a family of lines showing that the result is stable once n_bnd is
+    large enough."""
     nbs = sorted({int(r["n_boundary"]) for r in rows})
     cmap = plt.get_cmap("viridis")
-    fig, ax = plt.subplots(1, 2, figsize=(11, 4.4), layout="constrained")
+    fig, ax = plt.subplots(figsize=(6.4, 4.6), layout="constrained")
 
     for i, nb in enumerate(nbs):
-        rs = sorted((r for r in rows if int(r["n_boundary"]) == nb and float(r[errcol]) > 0),
+        rs = sorted((r for r in rows if int(r["n_boundary"]) == nb and float(r["recip"]) > 0),
                     key=lambda r: int(r["n_spectral"]))
-        ax[0].loglog([int(r["n_spectral"]) for r in rs], [float(r[errcol]) for r in rs],
-                     "D-", color=cmap(i / max(len(nbs) - 1, 1)), mec="white", mew=0.8,
-                     label=fr"$n_\mathrm{{bnd}}={nb}$")
-    ax[0].set_xlabel(r"$n_\mathrm{spec}$"); ax[0].set_ylabel(errlabel)
-    ax[0].legend(frameon=False, fontsize=8); _grid(ax[0])
-
-    for i, ns in enumerate(nss):
-        rs = sorted((r for r in rows if int(r["n_spectral"]) == ns and float(r[errcol]) > 0),
-                    key=lambda r: int(r["n_boundary"]))
-        ax[1].loglog([int(r["n_boundary"]) for r in rs], [float(r[errcol]) for r in rs],
-                     "D-", color=cmap(i / max(len(nss) - 1, 1)), mec="white", mew=0.8,
-                     label=fr"$n_\mathrm{{spec}}={ns}$")
-    ax[1].set_xlabel(r"$n_\mathrm{bnd}$"); ax[1].set_ylabel(errlabel)
-    ax[1].legend(frameon=False, fontsize=8); _grid(ax[1])
+        if len(rs) < 2:
+            continue
+        ax.loglog([int(r["n_spectral"]) for r in rs], [float(r["recip"]) for r in rs],
+                  "D-", color=cmap(i / max(len(nbs) - 1, 1)), mec="white", mew=0.8,
+                  label=fr"$n_\mathrm{{bnd}}={nb}$")
+    ax.set_xlabel(r"$n_\mathrm{spec}$"); ax.set_ylabel(L_RHO)
+    ax.legend(frameon=False, ncol=2); _grid(ax)
     save(fig, savename, fmt)
 
 
@@ -61,16 +54,14 @@ def fig_sphere_epgp_convergence(fmt="svg"):
     path = os.path.join(SPHERE_EPGP, "results.csv")
     if not os.path.exists(path):
         return
-    _epgp_2d_fig(read_csv(path), "err_vs_analytic", r"$\varepsilon_\star$",
-                 "sphere_epgp_convergence", fmt)
+    _epgp_conv_fig(read_csv(path), "epgp_sphere_convergence", fmt)
 
 
 def fig_ellipse_epgp_convergence(fmt="svg"):
     path = os.path.join(ELLIPSE_EPGP, "results.csv")
     if not os.path.exists(path):
         return
-    _epgp_2d_fig(read_csv(path), "err_vs_bem_ref", r"$\varepsilon$",
-                 "ellipse_epgp_convergence", fmt)
+    _epgp_conv_fig(read_csv(path), "epgp_ellipse_convergence", fmt)
 
 
 def fig_ellipse_bem_convergence(bem, fmt="svg"):
@@ -110,7 +101,7 @@ def fig_ellipse_bem_convergence(bem, fmt="svg"):
     ax[1].set_xticks(ps_all)
     _grid(ax[1])
 
-    save(fig, "ellipse_bem_convergence", fmt)
+    save(fig, "bem_ellipse_convergence", fmt)
 
 
 def _rate_fig(path, errcol, label, savename, fmt):
@@ -151,12 +142,12 @@ def _rate_fig(path, errcol, label, savename, fmt):
 
 def fig_sphere_epgp_rate(fmt="svg"):
     _rate_fig(os.path.join(SPHERE_EPGP, "results.csv"), "err_vs_analytic",
-              r"$\varepsilon_\star$", "sphere_epgp_rate", fmt)
+              r"$\varepsilon$", "epgp_sphere_rate", fmt)
 
 
 def fig_ellipse_epgp_rate(fmt="svg"):
     _rate_fig(os.path.join(ELLIPSE_EPGP, "results.csv"), "err_vs_bem_ref",
-              r"$\varepsilon$", "ellipse_epgp_rate", fmt)
+              r"$\varepsilon$", "epgp_ellipse_rate", fmt)
 
 
 def main():
@@ -180,7 +171,16 @@ def main():
              "epgp_convergence", "operator_spectrum",
              "bem_reciprocity", "epgp_reciprocity", "epgp_vs_bem",
              "bem_convergence", "ellipse_convergence", "sphere_convergence",
-             "epgp_ksweep", "sphere_ksweep", "sphere_multipole")
+             "epgp_ksweep", "sphere_ksweep", "sphere_multipole",
+             # old shape_solver order
+             "ellipse_bem_convergence", "ellipse_epgp_convergence",
+             "sphere_epgp_convergence", "ellipse_epgp_rate", "sphere_epgp_rate",
+             "ellipse_epgp_field_real", "ellipse_epgp_field_phase",
+             "ellipse_epgp_field_lic", "ellipse_epgp_field_real_anim",
+             "ellipse_epgp_field_phase_anim", "ellipse_epgp_field_lic_anim",
+             "sphere_epgp_field_real", "sphere_epgp_field_phase",
+             "sphere_epgp_field_lic", "sphere_epgp_field_real_anim",
+             "sphere_epgp_field_phase_anim", "sphere_epgp_field_lic_anim")
     for f in os.listdir(FIGS):
         if f.rsplit(".", 1)[0] in stale:
             os.remove(os.path.join(FIGS, f))
