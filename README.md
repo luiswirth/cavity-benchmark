@@ -26,6 +26,7 @@ always `uv run`. Depends on `cavity-epgp` for the shared dipole physics.
 ## Data flow
 
 `gen-config` -> shared config copied into `cavity-epgp/res` and `cavity-bem/res`
--> each solver computes its grid on Euler -> `out/{epgp,bem}_{shape}/` ->
+-> each solver computes its grid on Euler -> `out/{shape}/` -> pulled here by
+copying each solver's `out/` into `out/{solver}/` (so `out/{epgp,bem}/{shape}/`) ->
 pulled back here -> `aggregate` cross-validates -> `make-figures` -> figures/CSVs
 copied into `epgp-thesis/res/` (manual; thesis tables/figures read them there).

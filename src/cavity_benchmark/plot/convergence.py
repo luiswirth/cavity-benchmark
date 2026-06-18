@@ -8,9 +8,9 @@ import numpy as np
 from ..benchmark import BEM_REFERENCE
 from .common import FIGS, save, setup_style
 
-ELLIPSE_BEM = os.path.join("out", "bem_ellipse")
-ELLIPSE_EPGP = os.path.join("out", "epgp_ellipse")
-SPHERE_EPGP = os.path.join("out", "epgp_sphere")
+ELLIPSE_BEM = os.path.join("out", "bem", "ellipse")
+ELLIPSE_EPGP = os.path.join("out", "epgp", "ellipse")
+SPHERE_EPGP = os.path.join("out", "epgp", "sphere")
 
 # Reference-error marker style, and the reciprocity-error axis label.
 ERR = dict(color="#d62728", marker="D", ms=8)

@@ -30,7 +30,7 @@ BEM_REFERENCE = (5, 4)
 
 def bem_reference_path():
     p, m = BEM_REFERENCE
-    return os.path.join("out", "bem_ellipse", f"T_p{p}_m{m}.dat")
+    return os.path.join("out", "bem", "ellipse", f"T_p{p}_m{m}.dat")
 
 
 def semiaxes(name):
@@ -42,7 +42,7 @@ def config_path(name):
 
 
 def out_dir(name):
-    return os.path.join("out", f"epgp_{name}")
+    return os.path.join("out", "epgp", name)
 
 
 def reference_operator(name, k, points, e1, e2):

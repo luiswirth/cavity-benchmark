@@ -17,7 +17,7 @@ from ..benchmark import (BEM_REFERENCE, bem_reference_path, config_path, out_dir
 from cavity_epgp import load_config
 from .compare import load_bem, load_epgp, reciprocity
 
-BEM = os.path.join("out", "bem_ellipse")
+BEM = os.path.join("out", "bem", "ellipse")
 
 
 def read_bem_manifest():
