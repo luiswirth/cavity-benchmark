@@ -160,20 +160,3 @@ def reaction_operator_sphere(k, R, points, e1, e2, a=1.0,
     for _, y_l in _degree_responses(k, R, points, e1, e2, a, L_max, n_theta, n_phi):
         y += y_l
     return _contract(y, e1, e2)
-
-
-def multipole_spectrum(k, R, points, e1, e2, a=1.0,
-                       L_max=None, n_theta=None, n_phi=None):
-    """Per-degree contribution to the reaction operator.
-
-    Returns (ls, norms) with norms[i] the Frobenius norm of the degree-l term of
-    T. The norms fall off super-exponentially past l ~ k R, the exact angular
-    band limit.
-    """
-    L_max, n_theta, n_phi = _defaults(k, R, L_max, n_theta, n_phi)
-    e1, e2 = np.asarray(e1, dtype=float), np.asarray(e2, dtype=float)
-    ls, norms = [], []
-    for l, y_l in _degree_responses(k, R, points, e1, e2, a, L_max, n_theta, n_phi):
-        ls.append(l)
-        norms.append(float(np.linalg.norm(_contract(y_l, e1, e2))))
-    return np.array(ls), np.array(norms)

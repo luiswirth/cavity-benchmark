@@ -5,13 +5,11 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..benchmark import GEOMETRIES
 from .common import FIGS, save, setup_style
 
 ELLIPSE_BEM = os.path.join("out", "ellipse_bem")
 ELLIPSE_EPGP = os.path.join("out", "ellipse_epgp")
 SPHERE_EPGP = os.path.join("out", "sphere_epgp")
-FLOOR = 1e-16
 
 # Shared metric styles. Every convergence plot draws whichever of these exist:
 # an error against an external reference, the reference-free reciprocity error,
@@ -148,102 +146,6 @@ def fig_ellipse_bem_convergence(bem, fmt="svg"):
     save(fig, "ellipse_bem_convergence", fmt)
 
 
-def _ksweep_fig(path, yfield, ylabel, savename, fmt, scales):
-    """Wavenumber sweep: yfield vs n_spec, one curve per k, with the band-limit
-    prediction n_spec = (kR+1)^2 marked per curve. `scales` is a list of
-    (R, linestyle, legend_label); anisotropic geometries pass one entry per
-    distinct semi-axis."""
-    if not os.path.exists(path):
-        return
-    from matplotlib.lines import Line2D
-
-    rows = read_csv(path)
-    ks = sorted({float(r["k"]) for r in rows})
-    cmap = plt.get_cmap("viridis")
-
-    fig, ax = plt.subplots(figsize=(6.8, 4.6), layout="constrained")
-    vlines = []
-    for i, k in enumerate(ks):
-        sel = sorted((r for r in rows if float(r["k"]) == k),
-                     key=lambda r: int(r["n_spectral"]))
-        ns = np.array([int(r["n_spectral"]) for r in sel])
-        y = np.array([max(float(r[yfield]), FLOOR) for r in sel])
-        color = cmap(i / max(len(ks) - 1, 1))
-        ax.plot(ns, y, "D-", color=color, mec="white", mew=0.8, markersize=6)
-        for R, ls, _ in scales:
-            vlines.append(((k * R + 1) ** 2, color, ls))
-
-    # Coincident band-limit lines (different k, same n_spec) would hide one
-    # another, so nudge each member of a colliding group symmetrically in
-    # log-space to keep both visible at essentially the same n_spec.
-    groups = {}
-    for x, color, ls in vlines:
-        groups.setdefault(round(x, 6), []).append((color, ls))
-    for x0, members in groups.items():
-        m = len(members)
-        for j, (color, ls) in enumerate(members):
-            off = 0.0 if m == 1 else (j - (m - 1) / 2) * 0.05
-            ax.axvline(x0 * 2 ** off, color=color, ls=ls, lw=1.6)
-
-    ax.set_xscale("log", base=2)
-    ax.set_yscale("log")
-    ax.set_xlabel(r"$n_\mathrm{spec}$")
-    ax.set_ylabel(ylabel)
-
-    # Two columns: all k entries in the left column, the scale lines in the
-    # right. matplotlib fills column-major, so pad the right column with blank
-    # entries up to the number of k curves.
-    k_handles = [Line2D([0], [0], color=cmap(i / max(len(ks) - 1, 1)),
-                        marker="D", mec="white", mew=0.8, markersize=6)
-                 for i in range(len(ks))]
-    k_labels = [f"$k={k:g}$" for k in ks]
-    s_handles = [Line2D([0], [0], color="0.35", ls=ls, lw=1.6) for _, ls, _ in scales]
-    s_labels = [lab for _, _, lab in scales]
-    pad = len(ks) - len(scales)
-    s_handles += [Line2D([], [], linestyle="none")] * pad
-    s_labels += [""] * pad
-    leg = ax.legend(k_handles + s_handles, k_labels + s_labels, ncol=2,
-                    frameon=True, framealpha=1.0, facecolor="white", edgecolor="none")
-    leg.set_zorder(5)
-    _grid(ax)
-    save(fig, savename, fmt)
-
-
-def fig_ellipse_epgp_ksweep(fmt="svg"):
-    a_min, a_max = min(GEOMETRIES["ellipse"]), max(GEOMETRIES["ellipse"])
-    _ksweep_fig(os.path.join(ELLIPSE_EPGP, "ksweep.csv"), "recip", L_RHO,
-                "ellipse_epgp_ksweep", fmt,
-                [(a_min, "-.", r"$n_\mathrm{spec}=(k a_{\min}+1)^2$"),
-                 (a_max, ":", r"$n_\mathrm{spec}=(k a_{\max}+1)^2$")])
-
-
-def fig_sphere_epgp_ksweep(fmt="svg"):
-    R = max(GEOMETRIES["sphere"])
-    _ksweep_fig(os.path.join(SPHERE_EPGP, "ksweep.csv"), "err_vs_ref",
-                r"$\|\mathbf{T}_{\mathrm{EPGP}}-\mathbf{T}_\star\|/\|\mathbf{T}_\star\|$",
-                "sphere_epgp_ksweep", fmt,
-                [(R, ":", r"$n_\mathrm{spec}=(kR+1)^2$")])
-
-
-def fig_sphere_analytic_multipole(fmt="svg"):
-    path = os.path.join(SPHERE_EPGP, "multipole.csv")
-    if not os.path.exists(path):
-        return
-    r = read_csv(path)
-    ll = np.array([int(x["l"]) for x in r])
-    nrm = np.array([max(float(x["norm"]), FLOOR) for x in r])
-    kR = float(r[0]["kR"])
-
-    fig, ax = plt.subplots(figsize=(6.4, 4.6), layout="constrained")
-    ax.semilogy(ll, nrm, "D-", color=ERR["color"], mec="white", mew=1.0, markersize=7)
-    ax.axvline(kR, color="0.4", ls=":", lw=1.6, label=r"$l = kR$")
-    ax.set_xlabel(r"degree $l$")
-    ax.set_ylabel(r"$\|\mathbf{T}_l\|$")
-    ax.legend(frameon=False)
-    _grid(ax)
-    save(fig, "sphere_analytic_multipole", fmt)
-
-
 def _rate_fig(path, errcol, label, savename, fmt):
     """Convergence-rate view: the reference error on a log axis against
     sqrt(n_spec) on a linear axis. Root-exponential convergence,
@@ -311,9 +213,6 @@ def main():
     fig_sphere_epgp_convergence(fmt)
     fig_ellipse_epgp_convergence(fmt)
     fig_ellipse_bem_convergence(bem, fmt)
-    fig_ellipse_epgp_ksweep(fmt)
-    fig_sphere_epgp_ksweep(fmt)
-    fig_sphere_analytic_multipole(fmt)
     fig_sphere_epgp_rate(fmt)
     fig_ellipse_epgp_rate(fmt)
     stale = ("h_convergence", "p_convergence", "reciprocity", "svd_spectrum",

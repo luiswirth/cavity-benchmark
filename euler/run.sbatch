@@ -9,10 +9,8 @@
 #SBATCH --constraint=EPYC_7742
 ##SBATCH --exclusive
 #
-# Run any --index-aware entry point as a SLURM array (one index per task):
+# Run the convergence study as a SLURM array (one grid point per task):
 #   sbatch --array=0-59 euler/run.sbatch epgp-convergence --geometry ellipse
-#   sbatch --array=0-4  euler/run.sbatch epgp-sweep       --geometry ellipse
-#   sbatch --array=0-9  euler/run.sbatch epgp-resonance   --geometry ellipse --nchunks 10
 # (convergence GRID is 10 n_spectral x 6 n_boundary = 60 points -> 0-59)
 # Each task writes a per-grid-point fragment; merge them afterwards (local,
 # alongside aggregate, since aggregate also needs the BEM reference):

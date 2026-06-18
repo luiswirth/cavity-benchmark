@@ -32,8 +32,6 @@ fragment. Submit the array, then merge the fragments locally with `--collect`
 BEM side: submit the array, pull results, post-process locally.
 
     sbatch --array=0-59 euler/run.sbatch epgp-convergence --geometry ellipse
-    sbatch --array=0-4  euler/run.sbatch epgp-sweep       --geometry ellipse
-    sbatch --array=0-9  euler/run.sbatch epgp-resonance   --geometry ellipse --nchunks 10
 
 ## Three independent measurements
 

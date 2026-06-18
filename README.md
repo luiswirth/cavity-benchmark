@@ -14,11 +14,8 @@ always `uv run`.
   `(n_spectral, n_boundary)`, mirroring the BEM `(p, m)` grid. The best operator
   is the high corner of both axes. Records recip, self-convergence vs the corner,
   err vs reference, cond, wall-time, peak memory.
-- `epgp-sweep` -- wavenumber x n_spectral (band-limit / ksweep diagnostic).
-- `epgp-resonance` -- subspace-angle resonance locator over k (certifies k=2 is
-  clear of interior PEC resonances).
 - `aggregate` -- combine manifests + saved operators into `results.csv`
-  (BEM reference for the ellipse, analytic multipole for the sphere).
+  (BEM reference for the ellipse, analytic reference for the sphere).
 - `make-figures` -- aggregate + all convergence/field figures.
 
 ## Two geometries
@@ -38,8 +35,8 @@ always `uv run`.
 ## Conventions
 
 - EP-GP noise is fixed (`opt_noise=False`, `log_noise=-12`); no per-run tuning.
-- Each `*-convergence`/`-sweep`/`-resonance` study is SLURM-array friendly:
-  `--index` runs one grid point, `--collect` merges per-task fragments.
+- `epgp-convergence` is SLURM-array friendly: `--index` runs one grid point,
+  `--collect` merges per-task fragments.
 - Metrics recorded: accuracy (recip / self-conv / err), cost (wall-time, peak
   memory), plus `provenance.json` (commit, params, versions).
 

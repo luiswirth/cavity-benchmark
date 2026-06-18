@@ -129,22 +129,6 @@ def aggregate_epgp(epgp_dir, T_ref, err_col):
     print(f"wrote {path}")
 
 
-def aggregate_multipole(k, points, e1, e2, outdir):
-    """Exact per-degree multipole spectrum of the spherical reference operator."""
-    from ..benchmark import GEOMETRIES
-    from ..sphere import multipole_spectrum
-
-    R = float(max(GEOMETRIES["sphere"]))
-    ls, norms = multipole_spectrum(k, R, points, e1, e2)
-    path = os.path.join(outdir, "multipole.csv")
-    with open(path, "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["l", "norm", "kR"])
-        for l, nrm in zip(ls, norms):
-            w.writerow([int(l), f"{nrm:.6e}", f"{k * R:.4f}"])
-    print(f"wrote {path}: degrees 1..{int(ls[-1])}, k R = {k * R:.3f}")
-
-
 def main():
     ap = argparse.ArgumentParser(description="aggregate convergence results")
     ap.add_argument("--geometry", choices=["ellipse", "sphere"], default="ellipse")
@@ -166,9 +150,6 @@ def main():
         aggregate_epgp(od, T_ref, err_col)
     else:
         print(f"(no EP-GP manifest in {od}/; run epgp-convergence)")
-
-    if args.geometry == "sphere":
-        aggregate_multipole(k, points, e1, e2, od)
 
 
 if __name__ == "__main__":
