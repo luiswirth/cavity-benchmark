@@ -12,7 +12,8 @@ import os
 
 import numpy as np
 
-from ..benchmark import BEM_REFERENCE, config_path, out_dir, reference_operator
+from ..benchmark import (BEM_REFERENCE, bem_reference_path, config_path, out_dir,
+                         reference_operator)
 from ..epgp.operators import load_config
 from .compare import load_bem, load_epgp, reciprocity
 
@@ -48,16 +49,17 @@ def aggregate_bem():
                      "maxrss": meta["maxrss"], "cond": meta["cond"],
                      "norm": float(np.linalg.norm(T)), "recip": reciprocity(T),
                      "T": T})
-    # Reference is BEM_REFERENCE, declared once in benchmark.py -- never picked
-    # implicitly. It is a grid point (the high corner), so it stays in the table
-    # with selfconv = 0.
-    ref = next((r for r in runs if (r["p"], r["m"]) == BEM_REFERENCE), None)
-    if ref is None:
-        raise FileNotFoundError(f"BEM reference p{BEM_REFERENCE[0]} m{BEM_REFERENCE[1]} "
-                                f"(BEM_REFERENCE) not found in {BEM}/")
-    nref = np.linalg.norm(ref["T"])
+    # Reference is BEM_REFERENCE, declared once in benchmark.py and loaded from
+    # its own operator file -- never picked implicitly, and it need NOT be one of
+    # the grid runs (it may be a separate, finer run outside the (p,m) grid).
+    ref_path = bem_reference_path()
+    if not os.path.exists(ref_path):
+        raise FileNotFoundError(
+            f"BEM reference p{BEM_REFERENCE[0]} m{BEM_REFERENCE[1]} operator missing: {ref_path}")
+    T_ref = load_bem(ref_path)
+    nref = np.linalg.norm(T_ref)
     for r in runs:
-        r["selfconv"] = np.linalg.norm(r["T"] - ref["T"]) / nref
+        r["selfconv"] = np.linalg.norm(r["T"] - T_ref) / nref
     runs.sort(key=lambda r: (r["p"], r["m"]))
 
     with open(os.path.join(BEM, "results.csv"), "w", newline="") as f:
@@ -68,9 +70,8 @@ def aggregate_bem():
             w.writerow([r["p"], r["m"], r["dofs"], f"{r['recip']:.6e}",
                         f"{r['selfconv']:.6e}", r["secs"], r["maxrss"],
                         f"{r['norm']:.6e}", f"{r['cond']:.6e}"])
-    print(f"BEM reference p{ref['p']} m{ref['m']} (BEM_REFERENCE): "
-          f"dofs={ref['dofs']}, recip={ref['recip']:.2e}")
-    return ref["T"]
+    print(f"BEM reference p{BEM_REFERENCE[0]} m{BEM_REFERENCE[1]} (BEM_REFERENCE)")
+    return T_ref
 
 
 def read_epgp_manifest(epgp_dir):

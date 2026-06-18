@@ -12,15 +12,9 @@ ELLIPSE_BEM = os.path.join("out", "ellipse_bem")
 ELLIPSE_EPGP = os.path.join("out", "ellipse_epgp")
 SPHERE_EPGP = os.path.join("out", "sphere_epgp")
 
-# Shared metric styles. Every convergence plot draws whichever of these exist:
-# an error against an external reference, the reference-free reciprocity error,
-# and the self-convergence distance to the finest run of the family.
-ERR = dict(color="#d62728", marker="D", ms=8)    # vs external reference
-RECIP = dict(color="#1f77b4", marker="o", ms=7)  # reciprocity rho
-SELF = dict(color="#2ca02c", marker="s", ms=7)   # self-convergence delta
-
+# Reference-error marker style, and the reciprocity-error axis label.
+ERR = dict(color="#d62728", marker="D", ms=8)
 L_RHO = r"$\rho = \|\mathbf{T}-\mathbf{T}^{\!\top}\|/\|\mathbf{T}\|$"
-L_DELTA = r"$\delta = \|\mathbf{T}-\mathbf{T}_{\mathrm{ref}}\|/\|\mathbf{T}_{\mathrm{ref}}\|$"
 
 
 def read_csv(path):
@@ -32,34 +26,6 @@ def _grid(ax):
     ax.grid(True, which="major", alpha=0.35)
     ax.grid(True, which="minor", alpha=0.12)
     ax.margins(x=0.04, y=0.08)
-
-
-def _series(ax, x, y, style, label):
-    """One metric curve. Non-positive entries (e.g. the reference run's own
-    self-convergence, which is exactly zero) are dropped rather than clamped."""
-    x = np.asarray(x, float)
-    y = np.asarray(y, float)
-    m = y > 0
-    ax.plot(x[m], y[m], style["marker"] + "-", color=style["color"],
-            mec="white", mew=1.0, markersize=style["ms"], label=label)
-
-
-def _conv_ax(ax, x, series, xlabel, xlog2=True):
-    """Unified convergence axis: log-y, shared styling, one line per metric.
-
-    series: list of (values, style, label).
-    """
-    for y, style, label in series:
-        _series(ax, x, y, style, label)
-    if xlog2:
-        ax.set_xscale("log", base=2)
-    else:
-        ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel("relative error")
-    ax.legend(frameon=False)
-    _grid(ax)
 
 
 def _epgp_2d_fig(rows, errcol, errlabel, savename, fmt):
@@ -203,9 +169,6 @@ def main():
     bem = [{"p": int(r["p"]), "m": int(r["m"]), "dofs": int(r["dofs"]),
             "recip": float(r["recip"]), "selfconv_vs_ref": float(r["selfconv_vs_ref"])}
            for r in read_csv(os.path.join(ELLIPSE_BEM, "results.csv"))]
-    # Reference is BEM_REFERENCE (declared once in benchmark.py) -- the same
-    # constant aggregate uses; never re-derived here.
-    ref = next(r for r in bem if (r["p"], r["m"]) == BEM_REFERENCE)
 
     fig_sphere_epgp_convergence(fmt)
     fig_ellipse_epgp_convergence(fmt)
@@ -221,7 +184,7 @@ def main():
     for f in os.listdir(FIGS):
         if f.rsplit(".", 1)[0] in stale:
             os.remove(os.path.join(FIGS, f))
-    print(f"wrote figures to {FIGS}  (BEM ref p{ref['p']} m{ref['m']}, recip={ref['recip']:.2e})")
+    print(f"wrote figures to {FIGS}  (BEM ref p{BEM_REFERENCE[0]} m{BEM_REFERENCE[1]})")
 
 
 if __name__ == "__main__":

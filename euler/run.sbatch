@@ -7,7 +7,6 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=2G
 #SBATCH --constraint=EPYC_7742
-##SBATCH --exclusive
 #
 # Run the convergence study as a SLURM array (one grid point per task):
 #   sbatch --array=0-59 euler/run.sbatch epgp-convergence --geometry ellipse
@@ -15,11 +14,10 @@
 # Each task writes a per-grid-point fragment; merge them afterwards (local,
 # alongside aggregate, since aggregate also needs the BEM reference):
 #   uv run epgp-convergence --geometry <geom> --collect
-# Mirrors the BEM side (sbatch the array, then post-process locally). The accuracy
-# grid runs on shared nodes; the matched runtime comparison is a separate small
-# --exclusive pass with --warmup (see README). EP-GP needs only modest memory
-# (corner ~3 GiB); 2G/cpu = 32 GiB is ample. It does not scale past ~8-16 cores,
-# so parallelism across the array, not more cores per task, is what makes it fast.
+# Mirrors the BEM side (sbatch the array, then post-process locally). EP-GP needs
+# only modest memory (corner ~3 GiB); 2G/cpu = 32 GiB is ample. It does not scale
+# past ~8-16 cores, so parallelism across the array, not more cores per task, is
+# what makes it fast.
 set -euo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 C=$SLURM_CPUS_PER_TASK

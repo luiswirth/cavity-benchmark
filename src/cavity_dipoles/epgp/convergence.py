@@ -83,20 +83,9 @@ MANIFEST_HEADER = ["n_spectral", "n_boundary", "dofs", "secs",
 FRAGMENT_DIR = "manifest.d"
 
 
-def run_one(base_cfg, semiaxes, k, points, e1, e2, ns, nb, outdir, warmup=False):
-    """Assemble the operator at one (n_spectral, n_boundary), save it, return row.
-
-    With warmup=True the operator is assembled once (discarded) to trigger JAX/XLA
-    compilation, then assembled again under timing, so `secs` is steady-state run
-    time with no compile cost folded in. XLA compiles per input shape, so the
-    warmup must use the same (ns, nb) as the timed call. Use it for the matched
-    runtime/memory comparison; the accuracy grid does not report timing and can
-    skip the 2x cost."""
+def run_one(base_cfg, semiaxes, k, points, e1, e2, ns, nb, outdir):
+    """Assemble the operator at one (n_spectral, n_boundary), save it, return row."""
     cfg = GPConfig(nb, base_cfg.log_noise, base_cfg.opt_noise, base_cfg.opt_steps)
-    if warmup:
-        tc = time.perf_counter()
-        assemble_operator(cfg, semiaxes, k, points, e1, e2, ns)
-        print(f"  warmup (compile+run) {time.perf_counter() - tc:6.1f}s discarded")
     t0 = time.perf_counter()
     T, post, _model = assemble_operator(cfg, semiaxes, k, points, e1, e2, ns)
     secs = time.perf_counter() - t0
@@ -178,9 +167,6 @@ def main():
                     help="run a single GRID entry by flat index (for SLURM array tasks)")
     ap.add_argument("--collect", action="store_true",
                     help="merge per-grid-point fragments into manifest.csv, then exit")
-    ap.add_argument("--warmup", action="store_true",
-                    help="assemble once to compile before the timed run, so secs "
-                         "excludes JAX/XLA compile (for the runtime/memory comparison)")
     args = ap.parse_args()
 
     outdir = args.outdir or out_dir(args.geometry)
@@ -198,12 +184,12 @@ def main():
 
     if args.index is not None:
         ns, nb = GRID[args.index]
-        row = run_one(cfg, semiaxes, k, points, e1, e2, ns, nb, outdir, args.warmup)
+        row = run_one(cfg, semiaxes, k, points, e1, e2, ns, nb, outdir)
         write_fragment(outdir, row)
         write_provenance(outdir, cfg, k, args.geometry)
         return
 
-    rows = [run_one(cfg, semiaxes, k, points, e1, e2, ns, nb, outdir, args.warmup)
+    rows = [run_one(cfg, semiaxes, k, points, e1, e2, ns, nb, outdir)
             for ns, nb in GRID]
     path = write_manifest(outdir, rows)
     print(f"wrote {path}: {len(rows)} grid points")
