@@ -12,7 +12,7 @@ import os
 
 import numpy as np
 
-from ..benchmark import config_path, out_dir, reference_operator
+from ..benchmark import BEM_REFERENCE, config_path, out_dir, reference_operator
 from ..epgp.operators import load_config
 from .compare import load_bem, load_epgp, reciprocity
 
@@ -48,16 +48,17 @@ def aggregate_bem():
                      "maxrss": meta["maxrss"], "cond": meta["cond"],
                      "norm": float(np.linalg.norm(T)), "recip": reciprocity(T),
                      "T": T})
-    # Reference is the lowest-reciprocity run (p6/m4, computed separately as a
-    # dedicated finer reference). It is excluded from the convergence-grid rows:
-    # p6 is the reference only, not a point of the (p,m) convergence test.
-    ref = min(runs, key=lambda r: r["recip"])
+    # Reference is BEM_REFERENCE, declared once in benchmark.py -- never picked
+    # implicitly. It is a grid point (the high corner), so it stays in the table
+    # with selfconv = 0.
+    ref = next((r for r in runs if (r["p"], r["m"]) == BEM_REFERENCE), None)
+    if ref is None:
+        raise FileNotFoundError(f"BEM reference p{BEM_REFERENCE[0]} m{BEM_REFERENCE[1]} "
+                                f"(BEM_REFERENCE) not found in {BEM}/")
     nref = np.linalg.norm(ref["T"])
-    grid = [r for r in runs if r is not ref]
-    for r in grid:
+    for r in runs:
         r["selfconv"] = np.linalg.norm(r["T"] - ref["T"]) / nref
-    grid.sort(key=lambda r: (r["p"], r["m"]))
-    runs = grid
+    runs.sort(key=lambda r: (r["p"], r["m"]))
 
     with open(os.path.join(BEM, "results.csv"), "w", newline="") as f:
         w = csv.writer(f)
@@ -67,15 +68,7 @@ def aggregate_bem():
             w.writerow([r["p"], r["m"], r["dofs"], f"{r['recip']:.6e}",
                         f"{r['selfconv']:.6e}", r["secs"], r["maxrss"],
                         f"{r['norm']:.6e}", f"{r['cond']:.6e}"])
-    # Single source of truth for the reference identity: written here, read by
-    # make_figures (and anything else) instead of re-deriving min-recip, which
-    # would miss the p6/m4 reference now that it is excluded from results.csv.
-    with open(os.path.join(BEM, "reference.csv"), "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["p", "m", "dofs", "recip", "norm", "cond"])
-        w.writerow([ref["p"], ref["m"], ref["dofs"], f"{ref['recip']:.6e}",
-                    f"{float(np.linalg.norm(ref['T'])):.6e}", f"{ref['cond']:.6e}"])
-    print(f"BEM reference (lowest recip): p{ref['p']} m{ref['m']}, "
+    print(f"BEM reference p{ref['p']} m{ref['m']} (BEM_REFERENCE): "
           f"dofs={ref['dofs']}, recip={ref['recip']:.2e}")
     return ref["T"]
 

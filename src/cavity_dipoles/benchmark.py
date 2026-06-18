@@ -3,9 +3,9 @@
 Two benchmarks share one EPGP convergence study, differing only in the reference
 the EPGP operator is compared against:
   * ellipse -- semi-axes (4, 4, 6); reference is the deterministic BEM operator
-    loaded from disk (the trusted p4m4 run);
-  * sphere  -- semi-axes (R, R, R); reference is the exact analytic multipole
-    operator of sphere.reaction_operator_sphere.
+    at BEM_REFERENCE (the high corner of the (p,m) grid for now);
+  * sphere  -- semi-axes (R, R, R); reference is the exact analytic operator of
+    sphere.reaction_operator_sphere.
 
 Generation (assembling EPGP operators) and analysis (comparing to the reference)
 are kept separate, as forced on the BEM side: epgp.convergence generates the
@@ -20,6 +20,18 @@ from .sphere import reaction_operator_sphere
 
 GEOMETRIES = {"ellipse": (4.0, 4.0, 6.0), "sphere": (4.0, 4.0, 4.0)}
 
+# The single, explicit declaration of the BEM reference for the ellipse
+# cross-validation, as the (p, m) of the run whose operator is the reference.
+# Every consumer (benchmark.reference_operator, results.aggregate, the figures)
+# reads this -- nothing picks the reference implicitly. The high corner of the
+# (p, m) grid for now; bump to a finer (p, m) when a finer reference is computed.
+BEM_REFERENCE = (5, 4)
+
+
+def bem_reference_path():
+    p, m = BEM_REFERENCE
+    return os.path.join("out", "ellipse_bem", f"T_bem_p{p}_m{m}.dat")
+
 
 def semiaxes(name):
     return GEOMETRIES[name]
@@ -33,10 +45,10 @@ def out_dir(name):
     return os.path.join("out", f"{name}_epgp")
 
 
-def reference_operator(name, k, points, e1, e2, bem_path="out/ellipse_bem/T_bem_p4_m4.dat"):
+def reference_operator(name, k, points, e1, e2):
     """Reference reaction operator for the named benchmark at wavenumber k."""
     if name == "sphere":
         return reaction_operator_sphere(k, float(max(GEOMETRIES[name])), points, e1, e2)
     if name == "ellipse":
-        return load_bem(bem_path)
+        return load_bem(bem_reference_path())
     raise ValueError(f"unknown benchmark {name!r}")
