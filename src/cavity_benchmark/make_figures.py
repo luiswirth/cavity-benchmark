@@ -3,7 +3,6 @@ import os
 import subprocess
 import sys
 
-FIELD_DIR = os.path.join("out", "field")
 FIGS = os.path.join("out", "figs")
 MODES = ["real", "phase", "lic"]
 
@@ -11,13 +10,13 @@ MODES = ["real", "phase", "lic"]
 # cavity is the default benchmark; the spherical cavity is rendered too when its
 # slice exists.
 FIELD_SLICES = [
-    (os.path.join(FIELD_DIR, "ellipse_field_slice.npz"), "ellipse_epgp_field", True),
-    (os.path.join(FIELD_DIR, "sphere_field_slice.npz"), "sphere_epgp_field", False),
+    (os.path.join("out", "epgp_ellipse", "field.npz"), "ellipse_epgp_field", True),
+    (os.path.join("out", "epgp_sphere", "field.npz"), "sphere_epgp_field", False),
 ]
 
-AGG = "cavity_dipoles.results.aggregate"
-CONV = "cavity_dipoles.plot.convergence"
-FLD = "cavity_dipoles.plot.field"
+AGG = "cavity_benchmark.results.aggregate"
+CONV = "cavity_benchmark.plot.convergence"
+FLD = "cavity_benchmark.plot.field"
 
 DATA = [[AGG]]
 BENCH = [[CONV]]
@@ -53,7 +52,7 @@ def main():
             if not os.path.exists(npz):
                 if required:
                     print(f"! {npz} missing -- generate it with "
-                          "'python -m cavity_dipoles.epgp.operators field', or pass --skip-field",
+                          "'uv run epgp-operator field' in cavity-epgp, or pass --skip-field",
                           file=sys.stderr)
                     sys.exit(1)
                 continue

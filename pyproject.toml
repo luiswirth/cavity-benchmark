@@ -1,32 +1,23 @@
 [project]
-name = "cavity-dipoles"
+name = "cavity-benchmark"
 version = "0.1.0"
-description = ""
+description = "Cross-validation harness for the cavity reaction-operator benchmark (EP-GP vs BEM, vs analytic sphere)"
 requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.4.4",
     "matplotlib>=3.10.7",
-    "jax>=0.8.1",
-    "optax>=0.2.6",
-    "maxwellgp",
+    "scipy>=1.14",
+    "cavity-epgp",
 ]
 
-# Optional CUDA backend: `uv sync --extra gpu` on a GPU node. JAX then runs the
-# EP-GP on GPU automatically; no code change. CPU stays the default for the
-# BEM-matched fairness comparison (Bembel is CPU-only).
-[project.optional-dependencies]
-gpu = ["jax[cuda12]>=0.8.1"]
-
 [project.scripts]
-gen-config = "cavity_dipoles.gen_config:main"
-epgp-operator = "cavity_dipoles.epgp.operators:main"
-epgp-convergence = "cavity_dipoles.epgp.convergence:main"
-aggregate = "cavity_dipoles.results.aggregate:main"
-make-figures = "cavity_dipoles.make_figures:main"
+gen-config = "cavity_benchmark.gen_config:main"
+aggregate = "cavity_benchmark.results.aggregate:main"
+make-figures = "cavity_benchmark.make_figures:main"
 
 [build-system]
 requires = ["uv_build>=0.11.17,<0.12.0"]
 build-backend = "uv_build"
 
 [tool.uv.sources]
-maxwellgp = { git = "ssh://git@github.com/luiswirth/maxwellgp.git", branch = "main" }
+cavity-epgp = { git = "ssh://git@github.com/luiswirth/cavity-epgp.git", branch = "main" }

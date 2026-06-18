@@ -17,7 +17,7 @@ dyadic Green's function of analytic.incident_field_batch.
 import numpy as np
 from scipy.special import roots_legendre, sph_harm_y, spherical_jn
 
-from .analytic import incident_field_batch
+from cavity_epgp import incident_field_batch
 
 
 def _quadrature(n_theta, n_phi):

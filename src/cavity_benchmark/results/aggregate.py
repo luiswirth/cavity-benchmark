@@ -14,10 +14,10 @@ import numpy as np
 
 from ..benchmark import (BEM_REFERENCE, bem_reference_path, config_path, out_dir,
                          reference_operator)
-from ..epgp.operators import load_config
+from cavity_epgp import load_config
 from .compare import load_bem, load_epgp, reciprocity
 
-BEM = os.path.join("out", "ellipse_bem")
+BEM = os.path.join("out", "bem_ellipse")
 
 
 def read_bem_manifest():
@@ -26,13 +26,12 @@ def read_bem_manifest():
         for row in csv.reader(f):
             if not row or row[0].startswith("#"):
                 continue
-            # manifest columns: P, M, dofs, secs, maxrss_kb, cond. Geometry is
-            # fixed by the dir (ellipse_bem); recip and ||T|| are NOT recorded,
-            # they are computed below from the saved T.
-            p, m, dofs, secs, maxrss = row[:5]
+            # manifest columns: P, M, dofs, secs, mem_kb, cond. recip and ||T||
+            # are NOT recorded; they are computed below from the saved T.
+            p, m, dofs, secs, mem = row[:5]
             cond = float(row[5]) if len(row) > 5 and row[5] else 0.0
             info[(int(p), int(m))] = {"dofs": int(dofs), "secs": int(secs),
-                                      "maxrss": int(maxrss) if maxrss else 0,
+                                      "mem": int(mem) if mem else 0,
                                       "cond": cond}
     return info
 
@@ -41,12 +40,12 @@ def aggregate_bem():
     info = read_bem_manifest()
     runs = []
     for (p, m), meta in info.items():
-        path = os.path.join(BEM, f"T_bem_p{p}_m{m}.dat")
+        path = os.path.join(BEM, f"T_p{p}_m{m}.dat")
         if not os.path.exists(path):
             continue
         T = load_bem(path)
         runs.append({"p": p, "m": m, "dofs": meta["dofs"], "secs": meta["secs"],
-                     "maxrss": meta["maxrss"], "cond": meta["cond"],
+                     "mem": meta["mem"], "cond": meta["cond"],
                      "norm": float(np.linalg.norm(T)), "recip": reciprocity(T),
                      "T": T})
     # Reference is BEM_REFERENCE, declared once in benchmark.py and loaded from
@@ -65,26 +64,28 @@ def aggregate_bem():
     with open(os.path.join(BEM, "results.csv"), "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["p", "m", "dofs", "recip", "selfconv_vs_ref", "secs",
-                    "maxrss_kb", "norm", "cond"])
+                    "mem_kb", "norm", "cond"])
         for r in runs:
             w.writerow([r["p"], r["m"], r["dofs"], f"{r['recip']:.6e}",
-                        f"{r['selfconv']:.6e}", r["secs"], r["maxrss"],
+                        f"{r['selfconv']:.6e}", r["secs"], r["mem"],
                         f"{r['norm']:.6e}", f"{r['cond']:.6e}"])
     print(f"BEM reference p{BEM_REFERENCE[0]} m{BEM_REFERENCE[1]} (BEM_REFERENCE)")
     return T_ref
 
 
 def read_epgp_manifest(epgp_dir):
+    # manifest columns (headerless): n_spectral, n_boundary, dofs, secs, mem_kb, cond
     rows = []
     with open(os.path.join(epgp_dir, "manifest.csv")) as f:
-        for row in csv.DictReader(f):
+        for row in csv.reader(f):
+            if not row or row[0].startswith("#"):
+                continue
+            ns, nb, dofs, secs, mem = row[:5]
             rows.append({
-                "ns": int(row["n_spectral"]),
-                "nb": int(row["n_boundary"]),
-                "dofs": int(row["dofs"]),
-                "secs": float(row["secs"]),
-                "cond": float(row["cond"]),
-                "maxrss": int(row["maxrss_kb"]) if row.get("maxrss_kb") else 0,
+                "ns": int(ns), "nb": int(nb), "dofs": int(dofs),
+                "secs": float(secs),
+                "mem": int(mem) if mem else 0,
+                "cond": float(row[5]) if len(row) > 5 and row[5] else 0.0,
             })
     return sorted(rows, key=lambda r: (r["nb"], r["ns"]))
 
@@ -96,7 +97,7 @@ def aggregate_epgp(epgp_dir, T_ref, err_col):
     nref = np.linalg.norm(T_ref)
     runs = read_epgp_manifest(epgp_dir)
     Ts = {(r["ns"], r["nb"]): load_epgp(
-        os.path.join(epgp_dir, f"T_epgp_ns{r['ns']}_nb{r['nb']}.npy")) for r in runs}
+        os.path.join(epgp_dir, f"T_ns{r['ns']}_nb{r['nb']}.npy")) for r in runs}
     corner = max(Ts)                              # (max ns, max nb) present
     Tfinest = Ts[corner]
     nfinest = np.linalg.norm(Tfinest)
@@ -112,12 +113,12 @@ def aggregate_epgp(epgp_dir, T_ref, err_col):
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["n_spectral", "n_boundary", "dofs", "secs", "cond",
-                    "norm", "recip", "selfconv_vs_finest", err_col, "maxrss_kb"])
+                    "norm", "recip", "selfconv_vs_finest", err_col, "mem_kb"])
         for r in runs:
             w.writerow([r["ns"], r["nb"], r["dofs"], f"{r['secs']:.3f}",
                         f"{r['cond']:.6e}", f"{r['norm']:.6e}",
                         f"{r['recip']:.6e}", f"{r['selfconv']:.6e}", f"{r['err']:.6e}",
-                        r["maxrss"]])
+                        r["mem"]])
             print(f"  EP-GP ns={r['ns']:>5} nb={r['nb']:>5}  recip={r['recip']:.3e}  "
                   f"selfconv={r['selfconv']:.3e}  err={r['err']:.3e}")
     print(f"wrote {path}")
