@@ -44,8 +44,8 @@ def _epgp_conv_fig(rows, savename, fmt):
             continue
         ax.loglog([int(r["n_spectral"]) for r in rs], [float(r["recip"]) for r in rs],
                   "D-", color=cmap(i / max(len(nbs) - 1, 1)), mec="white", mew=0.8,
-                  label=fr"$n_\mathrm{{bnd}}={nb}$")
-    ax.set_xlabel(r"$n_\mathrm{spec}$"); ax.set_ylabel(L_RHO)
+                  label=fr"$N_b={nb}$")
+    ax.set_xlabel(r"$N_s$"); ax.set_ylabel(L_RHO)
     ax.legend(frameon=False, ncol=2); _grid(ax)
     save(fig, savename, fmt)
 
@@ -133,7 +133,7 @@ def _rate_fig(path, errcol, label, savename, fmt):
         xx = np.linspace(x.min(), x.max(), 100)
         ax.semilogy(xx, 10 ** (a * xx + b), "--", color="0.4", lw=1.4,
                     label="root-exponential fit")
-    ax.set_xlabel(r"$\sqrt{n_\mathrm{spec}}$")
+    ax.set_xlabel(r"$\sqrt{N_s}$")
     ax.set_ylabel("relative error")
     ax.legend(frameon=False)
     _grid(ax)
