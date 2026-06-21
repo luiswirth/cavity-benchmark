@@ -11,3 +11,4 @@ wheels/
 
 out/
 .DS_Store
+_backup/

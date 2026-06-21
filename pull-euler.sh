@@ -13,3 +13,5 @@ rsync -av --mkpath --exclude=work/ --exclude=logs/ "$REMOTE/cavity-epgp/out/grid
 rsync -av --mkpath --exclude=work/ --exclude=logs/ "$REMOTE/cavity-epgp/out/grid/sphere/"  out/epgp/grid/sphere/
 rsync -av --mkpath --exclude=work/ --exclude=logs/ "$REMOTE/cavity-epgp/out/ref/ellipse/"  out/epgp/ref/ellipse/
 rsync -av --mkpath --exclude=work/ --exclude=logs/ "$REMOTE/cavity-epgp/out/ref/sphere/"   out/epgp/ref/sphere/
+rsync -av --mkpath --exclude=work/ --exclude=logs/ "$REMOTE/cavity-epgp/out/noise/ellipse/" out/epgp/noise/ellipse/
+rsync -av --mkpath --exclude=work/ --exclude=logs/ "$REMOTE/cavity-epgp/out/noise/sphere/"  out/epgp/noise/sphere/

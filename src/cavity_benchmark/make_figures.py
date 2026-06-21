@@ -1,10 +1,17 @@
 import argparse
+import glob
 import os
 import subprocess
 import sys
 
 FIGS = os.path.join("out", "figs")
 MODES = ["real", "phase", "lic"]
+
+# UQ figures: the operator value+uncertainty heatmap (from the high-fidelity ref
+# operator) and the noise-influence sweep. Each renders only when its data exists.
+OPERATOR = "cavity_benchmark.plot.operator"
+NOISE = "cavity_benchmark.plot.noise"
+GEOMETRIES = ["ellipse", "sphere"]
 
 # Field slices to render: (npz file, output prefix, required). The ellipsoidal
 # cavity is the default benchmark; the spherical cavity is rendered too when its
@@ -32,6 +39,25 @@ def field_steps(npz, prefix, modes, animate):
             for m in modes]
 
 
+def _has_sigma(d):
+    return bool(glob.glob(os.path.join(d, "Sigma_*.npy")))
+
+
+def uq_steps(geometry):
+    ref = os.path.join("out", "epgp", "ref", geometry)
+    if not _has_sigma(ref):
+        return []
+    return [[OPERATOR, "--geometry", geometry, "--uq-dir", ref,
+             "--out", os.path.join(FIGS, f"{geometry}_uq_operator.png")]]
+
+
+def noise_steps(geometry):
+    if not glob.glob(os.path.join("out", "epgp", "noise", geometry, "ln*")):
+        return []
+    return [[NOISE, "--geometry", geometry,
+             "--out", os.path.join(FIGS, f"{geometry}_noise.svg")]]
+
+
 def run(step):
     print(f"\n=== {' '.join(step)} ===", flush=True)
     subprocess.run([sys.executable, "-m", step[0], *step[1:]], check=True)
@@ -41,6 +67,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--skip-anim", action="store_true")
     ap.add_argument("--skip-field", action="store_true")
+    ap.add_argument("--skip-uq", action="store_true")
     ap.add_argument("--png", action="store_true",
                     help="also emit PNG versions of the line plots (default: SVG only)")
     args = ap.parse_args()
@@ -60,6 +87,11 @@ def main():
             steps += field_steps(npz, prefix, MODES + ["std"], animate=False)
             if not args.skip_anim:
                 steps += field_steps(npz, prefix, MODES, animate=True)
+
+    if not args.skip_uq:
+        for geometry in GEOMETRIES:
+            steps += uq_steps(geometry)
+            steps += noise_steps(geometry)
 
     for s in steps:
         run(s)
