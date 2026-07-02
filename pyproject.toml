@@ -14,6 +14,7 @@ dependencies = [
 gen-config = "cavity_benchmark.gen_config:main"
 aggregate = "cavity_benchmark.results.aggregate:main"
 make-figures = "cavity_benchmark.make_figures:main"
+uncertainty-normal = "cavity_benchmark.uncertainty_normal:main"
 
 [build-system]
 requires = ["uv_build>=0.11.17,<0.12.0"]
