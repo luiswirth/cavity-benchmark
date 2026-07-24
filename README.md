@@ -34,7 +34,7 @@ uv run gen-config              # write res/config_{shape}.txt (rarely needed; co
 # 1. produce operators with each solver (see their READMEs), locally or on a cluster
 # 2. collect them into out/{solver}/{mode}/{shape}/:
 ./pull-euler.sh                # from ETH Euler (default)
-REMOTE=.. ./pull-euler.sh      # from local sibling checkouts in semproj/
+REMOTE=.. ./pull-euler.sh      # from local sibling checkouts
 
 uv run make-figures            # aggregate CSVs + generate all figures into out/figs/
 ```
