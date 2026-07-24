@@ -5,7 +5,7 @@ shared cavity config, the analytic sphere reference operator, and the
 aggregation and plotting of both solvers' outputs (and the EPGP uncertainty). It
 does no heavy solving and does not run on a cluster; it consumes the operators
 produced by [cavity-bem](https://github.com/luiswirth/cavity-bem) and
-[cavity-epgp](https://github.com/luiswirth/cavity-epgp).
+[cavity-maxwell](https://github.com/luiswirth/cavity-maxwell).
 
 Two geometries:
 
@@ -24,7 +24,7 @@ the archival pipeline.
 
 - [uv](https://docs.astral.sh/uv/)
 
-`uv` pulls `cavity-epgp` (and transitively `maxwellgp`) from GitHub over https.
+`uv` pulls `cavity-maxwell` (and transitively `maxwellgp`) from GitHub over https.
 
 ## Workflow
 

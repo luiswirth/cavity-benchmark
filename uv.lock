@@ -20,7 +20,7 @@ name = "cavity-benchmark"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "cavity-epgp" },
+    { name = "cavity-maxwell" },
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "scipy" },
@@ -28,16 +28,16 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cavity-epgp", git = "https://github.com/luiswirth/cavity-epgp.git?branch=main" },
+    { name = "cavity-maxwell", git = "https://github.com/luiswirth/cavity-maxwell.git?branch=main" },
     { name = "matplotlib", specifier = ">=3.10.7" },
     { name = "numpy", specifier = ">=2.4.4" },
     { name = "scipy", specifier = ">=1.14" },
 ]
 
 [[package]]
-name = "cavity-epgp"
+name = "cavity-maxwell"
 version = "0.1.0"
-source = { git = "https://github.com/luiswirth/cavity-epgp.git?branch=main#c9e7e2ebdb10dc2a2a1f91361a22e62f3de462d9" }
+source = { git = "https://github.com/luiswirth/cavity-maxwell.git?branch=main#7282d9d2fd342f074d9933b2a8d99f1dd12af73f" }
 dependencies = [
     { name = "jax" },
     { name = "maxwellgp" },

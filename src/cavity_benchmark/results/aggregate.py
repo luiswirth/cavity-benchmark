@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 from ..benchmark import bem_reference_path, config_path, out_dir, reference_operator
-from cavity_epgp import load_config
+from cavity_maxwell import load_config
 from .compare import load_bem, load_epgp, reciprocity
 
 

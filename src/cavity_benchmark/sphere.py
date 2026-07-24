@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.special import roots_legendre, sph_harm_y, spherical_jn
 
-from cavity_epgp import incident_field_batch
+from cavity_maxwell import incident_field_batch
 
 
 def _quadrature(n_theta, n_phi):

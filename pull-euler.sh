@@ -5,7 +5,7 @@
 #
 # REMOTE is the rsync source root holding the solver repos. Defaults to ETH
 # Euler; override to gather results produced anywhere, e.g.:
-#   REMOTE=..              ./pull-euler.sh   # local sibling checkouts (semproj/)
+#   REMOTE=..              ./pull-euler.sh   # local sibling checkouts
 #   REMOTE=other:~/semproj ./pull-euler.sh   # another cluster/host
 set -uo pipefail
 REMOTE="${REMOTE:-euler:~/semproj}"
@@ -23,7 +23,7 @@ pull() {  # pull <remote-subpath> <local-dest>
 for geom in ellipse sphere; do
   pull "cavity-bem/out/grid/$geom" "out/bem/grid/$geom"
   for mode in grid field ksweep noise; do
-    pull "cavity-epgp/out/$mode/$geom" "out/epgp/$mode/$geom"
+    pull "cavity-maxwell/out/$mode/$geom" "out/epgp/$mode/$geom"
   done
 done
 

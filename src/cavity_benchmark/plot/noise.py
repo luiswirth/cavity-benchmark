@@ -8,7 +8,7 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
-from cavity_epgp import load_config
+from cavity_maxwell import load_config
 
 from ..benchmark import config_path, reference_operator
 from ..results.uq import entry_std
