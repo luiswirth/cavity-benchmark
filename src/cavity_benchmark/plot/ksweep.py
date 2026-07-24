@@ -10,7 +10,7 @@ import numpy as np
 from scipy.optimize import brentq
 from scipy.special import spherical_jn
 
-from cavity_maxwell import load_config
+from cavity_maxwellgp import load_config
 
 from ..benchmark import config_path
 from .common import FIGS, setup_style

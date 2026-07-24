@@ -82,7 +82,7 @@ def main():
             if not os.path.exists(npz):
                 if required:
                     print(f"! {npz} missing -- generate it with "
-                          "'uv run epgp-operator field' in cavity-maxwell, or pass --skip-field",
+                          "'uv run epgp-operator field' in cavity-maxwellgp, or pass --skip-field",
                           file=sys.stderr)
                     sys.exit(1)
                 continue

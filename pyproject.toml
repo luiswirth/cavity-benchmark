@@ -7,7 +7,7 @@ dependencies = [
     "numpy>=2.4.4",
     "matplotlib>=3.10.7",
     "scipy>=1.14",
-    "cavity-maxwell",
+    "cavity-maxwellgp",
 ]
 
 [project.scripts]
@@ -21,5 +21,5 @@ build-backend = "uv_build"
 
 [tool.uv.sources]
 # https so a fresh clone resolves without a GitHub SSH key. For local development
-# against a sibling checkout, override with: cavity-maxwell = { path = "../cavity-maxwell", editable = true }
-cavity-maxwell = { git = "https://github.com/luiswirth/cavity-maxwell.git", branch = "main" }
+# against a sibling checkout, override with: cavity-maxwellgp = { path = "../cavity-maxwellgp", editable = true }
+cavity-maxwellgp = { git = "https://github.com/luiswirth/cavity-maxwellgp.git", branch = "main" }
