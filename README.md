@@ -12,6 +12,14 @@ Two geometries:
 - `ellipse` (semi-axes 4, 4, 6): EPGP cross-validated against the BEM reference.
 - `sphere` (4, 4, 4): EPGP validated against the exact analytic operator.
 
+The solver/benchmark split is compute against analysis. It is justified by
+compute locality (the solvers run on a cluster, this does not), by treating both
+solvers uniformly, and by archival reproducibility, since the operators are the
+deliverable. Rule of thumb: output bound for a document goes through the file
+pipeline, solver writes operators and the benchmark plots them; pure exploration
+may import a solver inline and skip it. Do not force scratch experiments through
+the archival pipeline.
+
 ## Requirements
 
 - [uv](https://docs.astral.sh/uv/)
@@ -34,7 +42,7 @@ uv run make-figures            # aggregate CSVs + generate all figures into out/
 `make-figures` accepts `--skip-anim` and `--skip-field` to skip the slow field
 plots. `uv run aggregate --geometry {ellipse,sphere}` runs aggregation alone.
 
-The figures and result CSVs are pulled into the thesis with `epgp-thesis/pull-results.sh`.
+The figures and result CSVs are pulled into the thesis with `cavity-thesis/pull-results.sh`.
 
 ## Collecting results
 
