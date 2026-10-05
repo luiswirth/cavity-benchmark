@@ -21,5 +21,5 @@ build-backend = "uv_build"
 
 [tool.uv.sources]
 # https so a fresh clone resolves without a GitHub SSH key. For local development
-# against a sibling checkout, override with: cavity-maxwellgp = { path = "../cavity-maxwellgp", editable = true }
+# against a sibling checkout, override with: cavity-maxwellgp = { path = "../maxwellgp", editable = true }
 cavity-maxwellgp = { git = "https://github.com/luiswirth/cavity-maxwellgp.git", branch = "main" }
