@@ -21,7 +21,7 @@ pull() {  # pull <remote-subpath> <local-dest>
 
 for geom in ellipse sphere; do
   pull "cavity-bem/out/grid/$geom" "out/bem/grid/$geom"
-  for mode in grid field ksweep noise; do
+  for mode in grid field ksweep noise noise-grid; do
     pull "cavity-maxwellgp/out/$mode/$geom" "out/epgp/$mode/$geom"
   done
 done
