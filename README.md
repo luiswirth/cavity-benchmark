@@ -47,7 +47,7 @@ The figures and result CSVs are pulled into the thesis with `cavity-thesis/pull-
 ## Collecting results
 
 `pull-euler.sh` rsyncs the solver `out/{mode}/{shape}/` dirs (bem: `grid`;
-epgp: `grid`, `field`, `ksweep`, `noise`) from `$REMOTE` into
+epgp: `grid`, `field`, `ksweep`, `noise`, `noise-grid`) from `$REMOTE` into
 `out/{bem,epgp}/{mode}/{shape}/`. `REMOTE` is any rsync source root holding the two
 solver repos: the Euler login node by default, a local parent directory for a fully
 local run, or another host.
@@ -57,3 +57,4 @@ local run, or another host.
 - `out/bem/grid/{shape}/`, `out/epgp/grid/{shape}/` convergence grids (with `manifest.csv`)
 - the ellipse BEM reference operator is the most refined grid run, `out/bem/grid/ellipse/T_p5_m4.dat`
 - `out/epgp/{field,noise,ksweep}/{shape}/` field slice, noise sweep, conditioning sweep
+- `out/epgp/noise-grid/{shape}/ln{log_noise}/` an N_s sweep at each assumed noise level

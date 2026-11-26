@@ -8,6 +8,7 @@ FIGS = os.path.join("out", "figs")
 MODES = ["real", "phase", "lic"]
 OPERATOR = "cavity_benchmark.plot.operator"
 NOISE = "cavity_benchmark.plot.noise"
+NOISE_GRID = "cavity_benchmark.plot.noise_grid"
 KSWEEP = "cavity_benchmark.plot.ksweep"
 GEOMETRIES = ["ellipse", "sphere"]
 
@@ -53,6 +54,12 @@ def noise_steps(geometry):
              "--out", os.path.join(FIGS, f"{geometry}_noise.svg")]]
 
 
+def noise_grid_steps():
+    if not all(glob.glob(os.path.join("out", "epgp", "noise-grid", g, "ln*")) for g in GEOMETRIES):
+        return []
+    return [[NOISE_GRID, "--out", os.path.join(FIGS, "noise_grid.svg")]]
+
+
 def ksweep_steps(geometry):
     if not os.path.exists(os.path.join("out", "epgp", "ksweep", geometry, "ksweep.csv")):
         return []
@@ -94,6 +101,7 @@ def main():
         for geometry in GEOMETRIES:
             steps += uq_steps(geometry)
             steps += noise_steps(geometry)
+        steps += noise_grid_steps()
 
     for geometry in GEOMETRIES:
         steps += ksweep_steps(geometry)

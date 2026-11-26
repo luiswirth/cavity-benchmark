@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 import matplotlib.colors as mcolors
 import matplotlib.font_manager as fm
@@ -20,11 +21,23 @@ _FONT_FILES = [
 _TEXT = "NewComputerModernSans10"
 
 
+def _font_paths():
+    """The text font files: from ~/Library/Fonts on macOS, else wherever fontconfig knows them."""
+    paths = {f: os.path.join(_FONT_DIR, f) for f in _FONT_FILES}
+    try:
+        out = subprocess.run(["fc-list", ":", "file"], capture_output=True, text=True).stdout
+    except FileNotFoundError:
+        out = ""
+    for line in out.splitlines():
+        p = line.rstrip(": ")
+        if os.path.basename(p) in paths and not os.path.exists(paths[os.path.basename(p)]):
+            paths[os.path.basename(p)] = p
+    return [p for p in paths.values() if os.path.exists(p)]
+
+
 def setup_style():
-    for f in _FONT_FILES:
-        p = os.path.join(_FONT_DIR, f)
-        if os.path.exists(p):
-            fm.fontManager.addfont(p)
+    for p in _font_paths():
+        fm.fontManager.addfont(p)
     plt.rcParams.update({
         "savefig.bbox": "tight",
         "font.size": 13, "axes.titlesize": 14, "axes.labelsize": 13,
